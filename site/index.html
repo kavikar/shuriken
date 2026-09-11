@@ -59,10 +59,13 @@
     <div id="chatResult"></div>
   </section>
 
-  <div class="foot">Vanilla Shuriken Framework • Local Mock Mode • Ready for customization</div>
+  <div class="foot">Vanilla Shuriken Framework • Local Mock Mode • Ready for customization • <span id="site-version"></span></div>
 </div>
 <script src="theme.js"></script>
+<script src="version.js"></script>
 <script>
+document.getElementById('site-version').textContent = `v${SITE_VERSION}`;
+
 const msgs = document.getElementById('msgs');
 const result = document.getElementById('chatResult');
 function addMsg(role, text){
