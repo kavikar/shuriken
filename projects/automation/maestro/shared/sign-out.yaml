@@ -1,0 +1,103 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Sign Out
+#
+#  Flow: Profile icon (top-right) → bottom sheet → "My Account"
+#        → My Account page → scroll to "Sign Out" → confirm
+#
+#  The profile icon uses multiple possible IDs depending on
+#  app version — we try all known selectors.
+#
+#  Adapted from the upstream production-sanity suite, e2e/profile/logout.yaml
+#
+#  Expects env:
+#    BUNDLE_ID
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+jsEngine: graaljs
+androidWebViewHierarchy: devtools
+
+---
+
+# ── Open Account menu (try multiple selectors for profile icon) ──
+- runFlow:
+    when:
+      visible:
+        id: HomeHeader.pressables.myAccountMenu
+    commands:
+      - tapOn:
+          id: HomeHeader.pressables.myAccountMenu
+
+- runFlow:
+    when:
+      visible:
+        id: Apptopnavigation.sections.headerRight
+    commands:
+      - tapOn:
+          id: Apptopnavigation.sections.headerRight
+
+- runFlow:
+    when:
+      visible:
+        id: HomeHeader.pressables.moreMenu
+    commands:
+      - tapOn:
+          id: HomeHeader.pressables.moreMenu
+
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ── Wait for account bottom sheet to appear ──
+- extendedWaitUntil:
+    visible: "My Account"
+    timeout: 10000
+
+# ── Tap "My Account" in the bottom sheet ─────────────────────────
+#  The My Account card is a Button with resource-id
+#  "Accountdashboardcard.touchableArea" — tapping by text hits the
+#  backdrop overlay and closes the sheet.
+- tapOn:
+    id: Accountdashboardcard.touchableArea
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ── Scroll down on My Account page and tap Sign Out ──
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn: "Sign Out"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ── Confirm sign out (multiple possible dialogs) ──
+- runFlow:
+    when:
+      visible: "Yes"
+    commands:
+      - tapOn: "Yes"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+- runFlow:
+    when:
+      visible: "Confirm"
+    commands:
+      - tapOn: "Confirm"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+- runFlow:
+    when:
+      visible: "SIGN OUT"
+    commands:
+      - tapOn: "SIGN OUT"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# ── Verify signed out ──
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: screenshots/signed_out_${output.RUN_ID}

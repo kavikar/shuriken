@@ -1,0 +1,14 @@
+# Credentials — NEVER commit
+.env
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Generated reports
+reports/
+
+# Logs
+*.log

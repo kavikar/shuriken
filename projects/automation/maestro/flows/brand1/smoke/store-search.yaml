@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────────
+#  Brand One — Smoke: Store Search
+#
+#  Verifies store search by zip code returns results and a
+#  store can be selected. Uses Brand One UAT store 1000.
+#
+#  Run:  maestro test flows/brand1/smoke/store-search.yaml
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+tags:
+  - smoke
+  - Brand One
+  - store
+
+env:
+  BUNDLE_ID: com.example.brand1.uat
+  LOCATION_QUERY: "00000"
+  LOCATION_ID: "1000"
+
+---
+
+# Launch app & dismiss dialogs
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+# Dismiss "Close modal" if tech difficulties appear
+- runFlow:
+    when:
+      visible: "Close modal"
+    commands:
+      - tapOn: "Close modal"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# Search for store
+- runFlow: ../../../shared/select-location.yaml
+
+# Verify we landed on the menu / store page
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: screenshots/Brand One_store_selected_${output.RUN_ID}
+
+- evalScript: ${console.log('PASSED - Brand One store search smoke test')}

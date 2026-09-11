@@ -1,0 +1,101 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Pay with Credit Card
+#
+#  Navigates to payment, adds a new credit card, and submits.
+#  Uses exact resource IDs from UI Inspector.
+#
+#  Expects env:
+#    BUNDLE_ID
+#    CC_NAME         — e.g. "plate master"
+#    TEST_CC_NUMBER  — e.g. "5555555555554444"
+#    TEST_CC_EXPIRY  — e.g. "0233"  (MMYY, no slash)
+#    TEST_CC_CVV     — e.g. "444"
+#    TEST_CC_ZIP     — e.g. "00000"
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+
+---
+
+# ── Scroll to "More Options" to open payment methods ──
+# Google Pay button sits directly ABOVE "More Options" and overlaps it.
+# scrollUntilVisible stops as soon as the element peeks into view, but
+# Google Pay may still cover it. Fix: scroll past, then tap by ID.
+- scrollUntilVisible:
+    element:
+      id: "Checkout.textLink.moreOptions"
+    direction: DOWN
+    timeout: 20000
+    speed: 40
+
+# Extra swipe to push "More Options" well clear of Google Pay
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 40%"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+- tapOn:
+    id: "Checkout.textLink.moreOptions"
+
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ── Select "Add Credit/Debit Card" ──
+- extendedWaitUntil:
+    visible:
+      id: "Bag.Checkout.Payment.PaymentMethod.DebitCreditCTA"
+    timeout: 10000
+
+- tapOn:
+    id: "Bag.Checkout.Payment.PaymentMethod.DebitCreditCTA"
+
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ── Wait for card form to load ──
+- extendedWaitUntil:
+    visible:
+      id: "ccName"
+    timeout: 20000
+
+# ── Name on Card ──
+- tapOn:
+    id: "ccName"
+- inputText: ${CC_NAME}
+- hideKeyboard
+
+# ── Card Number ──
+- tapOn:
+    id: "ccNum"
+- inputText: ${TEST_CC_NUMBER}
+- hideKeyboard
+
+# ── Expiration Date ──
+- tapOn:
+    id: "expiry"
+- inputText: ${TEST_CC_EXPIRY}
+- hideKeyboard
+
+# ── CVV ──
+- tapOn:
+    id: "cvv"
+- inputText: ${TEST_CC_CVV}
+- hideKeyboard
+
+# ── Zip Code ──
+- tapOn:
+    id: "zip"
+- inputText: ${TEST_CC_ZIP}
+- hideKeyboard
+
+- takeScreenshot: screenshots/payment_card_entered_${output.RUN_ID}
+
+# ── Tap "Pay" button to save the card ──
+- tapOn:
+    id: "35b547c3-8328-4fdc-92cf-8e6982c12fa5"
+
+- waitForAnimationToEnd:
+    timeout: 10000
+
+- takeScreenshot: screenshots/payment_completed_${output.RUN_ID}

@@ -1,0 +1,81 @@
+# ═══════════════════════════════════════════════════════════════
+#  Brand Three — Auth User Delivery Order (Visa 4111)
+#
+#  Full critical-path E2E test composing shared sub-flows:
+#    Launch → Select Location → Switch Delivery → Sign In →
+#    Menu → Add Item → Bag → Checkout → Payment →
+#    Place Order → Verify Confirmation
+#
+#  Run:  maestro test flows/brand3/auth/signin-order.yaml
+# ═══════════════════════════════════════════════════════════════
+
+appId: ${BUNDLE_ID}
+jsEngine: graaljs
+androidWebViewHierarchy: devtools
+tags:
+  - e2e
+  - brand3
+  - auth
+  - delivery
+  - visa
+  - critical-path
+
+env:
+  BUNDLE_ID: com.example.brand3.uat
+  AUTH_EMAIL: "user@example.com"
+  AUTH_PASS: "replace_me"
+  AUTH_PHONE: "5555550100"
+  OTP_BRAND_CODE: "B3"
+  OTP_API_PREFIX: "b3-api"
+  LOCATION_QUERY: "00000"
+  LOCATION_ID: "1000"
+  DELIVERY_ADDRESS: "1 Example St, Example City, GA 00000"
+  MENU_CATEGORY_ID: "Breakfast"
+  PRODUCT_CATEGORY: "NationalBreakfastEntrees"
+  PRODUCT_ID: "BaconBreakfastBurrito"
+  CC_NAME: "Test User"
+  TEST_CC_NUMBER: "4111111111111111"
+  TEST_CC_EXPIRY: "1227"
+  TEST_CC_CVV: "444"
+  TEST_CC_ZIP: "00000"
+
+---
+
+# STEP 1: Launch App & Dismiss Dialogs
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+# STEP 2: Select Location
+- runFlow: ../../../shared/select-location.yaml
+
+# STEP 3: Sign In (with MFA)
+- tapOn:
+    id: "TabBar.Home.label"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: ../../../shared/sign-in.yaml
+
+# Verify signed in
+- extendedWaitUntil:
+    visible:
+      id: "HomeScreen.ChangeLocationBtn"
+    timeout: 20000
+
+# STEP 4: Browse Menu & Add Item
+- runFlow: ../../../shared/menu-add-item.yaml
+
+# STEP 5: Open Bag & Checkout
+- runFlow: ../../../shared/open-bag-checkout.yaml
+
+# STEP 6: Pay with Credit Card (auth user — contact info pre-filled)
+- runFlow: ../../../shared/pay-credit-card.yaml
+
+# STEP 7: Place Order & Verify Confirmation
+- runFlow: ../../../shared/place-order-verify.yaml
+
+- evalScript: ${console.log('PASSED - Brand Three Auth User Delivery Order with Visa 4111')}
+
+# STEP 8: Sign Out
+- runFlow: ../../../shared/sign-out.yaml
+
+- stopApp

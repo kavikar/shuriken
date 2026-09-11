@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────
+#  Shuriken — Local Environment Variables (TEMPLATE)
+#
+#  Copy this file to scripts/load-env.ps1 and fill in your values:
+#     Copy-Item scripts\load-env.ps1.template scripts\load-env.ps1
+#     # Edit scripts\load-env.ps1 with your actual values
+#     . .\scripts\load-env.ps1
+#
+#  ⚠️ DO NOT COMMIT scripts/load-env.ps1 — it's in .gitignore
+#  See GITLAB_VARIABLES_SETUP.md for full variable reference.
+# ─────────────────────────────────────────────────────────────
+
+# BrowserStack
+$env:BROWSERSTACK_USERNAME   = "<your-browserstack-username>"
+$env:BROWSERSTACK_ACCESS_KEY = "<your-browserstack-access-key>"
+
+# Bitrise
+$env:BITRISE_AUTH_TOKEN = "<your-bitrise-pat>"
+
+# Confluence
+$env:CONFLUENCE_BASE_URL       = "https://your-tenant.atlassian.net/wiki"
+$env:CONFLUENCE_SPACE_KEY      = "<your-confluence-space-key>"
+$env:CONFLUENCE_EMAIL          = "<your-confluence-email>"
+$env:CONFLUENCE_API_TOKEN      = "<your-confluence-api-token>"
+$env:CONFLUENCE_PARENT_PAGE_ID = "<your-confluence-parent-page-id>"
+
+# Teams Webhook (Power Automate)
+$env:TEAMS_WEBHOOK_URL = "<your-teams-webhook-url>"
+
+# Outlook (optional — same Power Automate flow can handle both)
+$env:OUTLOOK_WEBHOOK_URL = ""
+
+Write-Host "✅ Shuriken environment variables loaded" -ForegroundColor Green

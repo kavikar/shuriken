@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: Orders API
+  version: 2.1.0
+servers:
+  - url: https://orders.example.com/api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /brands/{brandId}/orders/{orderId}:
+    get:
+      operationId: getOrder
+      summary: Get order
+      tags:
+        - orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: brandId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: includeDetails
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Order found
+  /brands/{brandId}/orders:
+    post:
+      operationId: createOrder
+      summary: Create order
+      tags:
+        - orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: brandId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - itemId
+                - quantity
+              properties:
+                itemId:
+                  type: string
+                quantity:
+                  type: integer
+            example:
+              itemId: ITEM-100
+              quantity: 2
+      responses:
+        '201':
+          description: Order created

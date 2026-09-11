@@ -1,0 +1,132 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Sign In (with MFA support)
+#
+#  Signs in with email/password using selectors proven in the production-sanity suite.
+#  If MFA screen appears, automatically fetches OTP from API and
+#  enters the verification code.
+#
+#  Uses androidWebViewHierarchy: devtools to see inside WebViews.
+#
+#  Expects env:
+#    BUNDLE_ID      — app bundle/package id
+#    AUTH_EMAIL     — login email
+#    AUTH_PASS      — login password
+#    AUTH_PHONE     — phone number for OTP (default: 5555550100)
+#    OTP_BRAND_CODE — brand code for OTP API (B3/ABI/B2, default: B3)
+#    OTP_API_PREFIX — API host prefix (b3-api/b1-api/b2-api, default: b3-api)
+#
+#  Adapted from the upstream production-sanity suite, e2e/profile/login.yaml
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+jsEngine: graaljs
+androidWebViewHierarchy: devtools
+
+---
+
+# ── Tap "Sign In" link on greeting screen ──
+- runFlow:
+    when:
+      visible:
+        id: Greetings.pressables.signInLink
+    commands:
+      - tapOn:
+          id: Greetings.pressables.signInLink
+
+- waitForAnimationToEnd
+
+# ── Wait for sign-in form to load ──
+- extendedWaitUntil:
+    visible: "EMAIL *"
+    timeout: 30000
+
+# ── Enter email ──
+- tapOn:
+    id: email
+- inputText: ${AUTH_EMAIL}
+- hideKeyboard
+
+# ── Enter password ──
+- tapOn:
+    id: password
+- inputText: ${AUTH_PASS}
+- hideKeyboard
+
+# ── Submit sign in ──
+- tapOn:
+    text: SIGN IN
+    index: 1
+
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# ══════════════════════════════════════════════════════════════
+# MFA HANDLING — 3-screen flow:
+#   Screen 2: "SECURE YOUR ACCOUNT" → tap "Send code"
+#   (Chrome "Save password?" popup may appear — dismiss it)
+#   Screen 3: "Verify Your Identity" → enter 6-digit OTP → "Verify"
+# ══════════════════════════════════════════════════════════════
+
+# ── Dismiss Chrome "Save password?" popup if shown ───────────
+- runFlow:
+    when:
+      visible: "Save password?"
+    commands:
+      - tapOn:
+          text: "Not now"
+          optional: true
+      - tapOn:
+          text: "No thanks"
+          optional: true
+
+# ── Step 2: "SECURE YOUR ACCOUNT" — tap "Send code" ─────────
+- runFlow:
+    when:
+      visible: "SECURE YOUR ACCOUNT"
+    commands:
+      - tapOn: "Send code"
+      - waitForAnimationToEnd:
+          timeout: 10000
+
+# ── Dismiss Chrome "Save password?" again (may appear after Send code) ──
+- runFlow:
+    when:
+      visible: "Save password?"
+    commands:
+      - tapOn:
+          text: "Not now"
+          optional: true
+      - tapOn:
+          text: "No thanks"
+          optional: true
+
+# ── Step 3: "Verify Your Identity" — enter OTP & verify ─────
+- runFlow:
+    when:
+      visible: "Verify Your Identity"
+    commands:
+      # Wait for OTP input field
+      - extendedWaitUntil:
+          visible:
+            id: "otpCode"
+          timeout: 15000
+      # Give SMS time to arrive
+      - waitForAnimationToEnd:
+          timeout: 5000
+      # Fetch OTP from notifications API
+      - runScript:
+          file: fetch-otp.js
+          env:
+            AUTH_PHONE: ${AUTH_PHONE}
+            OTP_BRAND_CODE: ${OTP_BRAND_CODE}
+            OTP_API_PREFIX: ${OTP_API_PREFIX}
+            OTP_ENV: "uat"
+      # Tap the OTP input field and enter the 6-digit code
+      - tapOn:
+          id: "otpCode"
+      - inputText: ${output.OTP_CODE}
+      - hideKeyboard
+      # Tap Verify button
+      - tapOn: "Verify"
+      - waitForAnimationToEnd:
+          timeout: 15000

@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Brand Menu Mapping Validator</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            color: #374151;
+            background: #f3f6fa;
+            transition: background 0.4s;
+        }
+
+        .container {
+            max-width: 1450px;
+            margin: 0 auto;
+            background: #f9fafb;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            overflow: hidden;
+        }
+
+        /* ── Brand Switcher ─────────────────────────────────────────── */
+        .brand-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            background: #2d3748;
+            padding: 0;
+        }
+        .brand-switcher button {
+            flex: 1;
+            max-width: 260px;
+            padding: 14px 24px;
+            border: none;
+            font-weight: 700;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 0.3px;
+            position: relative;
+        }
+        .brand-switcher button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 20%; right: 20%;
+            height: 3px;
+            border-radius: 3px 3px 0 0;
+            background: rgba(255,255,255,0.75);
+        }
+
+        /* ── Header ─────────────────────────────────────────────────── */
+        .header {
+            color: white;
+            padding: 26px 30px;
+            text-align: center;
+            transition: background 0.4s;
+        }
+        /* ── Global base font ───────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-size: 15px; }
+
+        .header h1 { font-size: 2.1em; margin-bottom: 7px; font-weight: 700; }
+        .header p  { font-size: 0.95em; opacity: 0.82; }
+
+        /* ── Stats Grid ─────────────────────────────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 16px;
+            padding: 24px 28px;
+            background: #eef3f9;
+        }
+        .stat-card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: transform 0.25s, box-shadow 0.25s;
+            position: relative;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.09); }
+        .stat-card.active { border: 2px solid var(--brand-color); box-shadow: 0 6px 18px rgba(0,0,0,0.11); }
+        .stat-card h3 { font-size: 0.78em; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600; }
+        .stat-value  { font-size: 2em; font-weight: 700; margin-bottom: 4px; }
+        .stat-label  { font-size: 0.82em; color: #9ca3af; }
+        .stat-card.info    { background: #eef3fa; }
+        .stat-card.success { background: #edf7f2; }
+        .stat-card.warning { background: #fdf7ee; }
+        .stat-card.error   { background: #fdf0f0; }
+        .stat-card.virtual { background: #f3f0fd; }
+        .stat-card.info    .stat-value { color: #4a6480; }
+        .stat-card.success .stat-value { color: #059669; }
+        .stat-card.warning .stat-value { color: #d97706; }
+        .stat-card.error   .stat-value { color: #dc2626; }
+
+        /* ── Controls ───────────────────────────────────────────────── */
+        .content   { padding: 24px 28px; }
+        .section   { margin-bottom: 32px; }
+        .section-title { font-size: 1.35em; margin-bottom: 16px; padding-bottom: 7px; border-bottom: 2px solid var(--brand-color); color: var(--brand-color); font-weight: 700; }
+        .controls  { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .search-box, .filter-select {
+            padding: 9px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 7px;
+            font-size: 0.91em;
+            background: #fff;
+            color: #374151;
+            transition: border-color 0.25s;
+        }
+        .search-box { flex: 1; min-width: 220px; }
+        .search-box:focus, .filter-select:focus { outline: none; border-color: var(--brand-color); }
+        .filter-label { display:flex; align-items:center; font-size:0.78em; font-weight:700; color:#6b7280; letter-spacing:0.04em; text-transform:uppercase; padding:0 4px; white-space:nowrap; }
+
+        .btn {
+            padding: 9px 20px; border: none; border-radius: 7px;
+            font-size: 0.91em; cursor: pointer; font-weight: 600;
+            transition: all 0.25s;
+        }
+        .btn-primary { background: var(--brand-color); color: var(--brand-text, #fff); }
+        .btn-primary:hover { filter: brightness(0.88); transform: translateY(-1px); }
+
+        /* ── Table ──────────────────────────────────────────────────── */
+        .table-container { overflow-x: auto; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        thead { color: white; transition: background 0.4s; }
+        th { padding: 12px 13px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.77em; letter-spacing: 0.8px; }
+        td { padding: 12px 13px; border-bottom: 1px solid #f0f2f5; font-size: 0.91em; }
+        tbody tr:hover { background: #f8fafc; }
+
+        .badge { padding: 4px 9px; border-radius: 20px; font-size: 0.8em; font-weight: 600; display: inline-block; }
+        .badge-success { background: #ecfdf5; color: #065f46; }
+        .badge-error   { background: #fef2f2; color: #991b1b; }
+        .badge-warning { background: #fffbeb; color: #92400e; }
+        .badge-info    { background: #eff6ff; color: #1e40af; }
+        .product-id    { font-family: 'Courier New', monospace; font-size: 0.85em; color: #6b7280; }
+        .groups-list   { font-size: 0.85em; color: #6b7280; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+
+        /* ── Load-data panel ────────────────────────────────────────── */
+        .load-data-section { text-align: center; padding: 44px 28px; background: #f1f4f8; border-radius: 10px; }
+        .load-data-section h2 { margin-bottom: 14px; color: #374151; }
+        .load-data-section p  { color: #6b7280; margin-bottom: 22px; font-size: 0.97em; }
+
+        .no-data { text-align: center; padding: 32px; color: #9ca3af; font-style: italic; }
+
+        /* ── History Tab ─────────────────────────────────────────────── */
+        .history-table { width:100%; border-collapse:collapse; }
+        .history-table th { padding:10px 14px; text-align:left; font-size:0.74em; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; }
+        .history-table td { padding:10px 14px; border-bottom:1px solid #f0f2f5; font-size:0.86em; vertical-align:middle; }
+        .history-table tbody tr:hover { background:#f8fafc; }
+        .btn-dl { display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border:none; border-radius:6px; font-size:0.78em; font-weight:600; cursor:pointer; transition:all 0.18s; white-space:nowrap; }
+        .btn-dl-json { background:#e0f2fe; color:#0369a1; }
+        .btn-dl-json:hover { background:#bae6fd; }
+        .btn-dl-xlsx { background:#dcfce7; color:#166534; }
+        .btn-dl-xlsx:hover { background:#bbf7d0; }
+        .btn-dl-load { color:#fff; }
+        .btn-dl-load:hover { filter:brightness(0.88); }
+        .history-empty { text-align:center; padding:44px; color:#9ca3af; font-style:italic; font-size:0.91em; }
+        /* ── Download Toolbar ─────────────────────────────────────────── */
+        .dl-toolbar { display:flex; align-items:center; gap:10px; padding:12px 0 4px; flex-wrap:wrap; }
+        .btn-dl-lg { display:inline-flex; align-items:center; gap:7px; padding:8px 18px; border:none; border-radius:7px; font-weight:700; font-size:0.86em; cursor:pointer; transition:all 0.2s; }
+        .btn-dl-lg:hover { transform:translateY(-1px); box-shadow:0 3px 10px rgba(0,0,0,0.12); }
+        .btn-dl-json-lg { background:#0284c7; color:#fff; }
+        .btn-dl-json-lg:hover { background:#0369a1; }
+        .btn-dl-xlsx-lg { background:#059669; color:#fff; }
+        .btn-dl-xlsx-lg:hover { background:#047857; }
+
+        /* ── Spinner ────────────────────────────────────────────────── */
+        .loading { text-align: center; padding: 40px; font-size: 1em; }
+        .spinner {
+            border: 3px solid #e5e7eb; border-top: 3px solid var(--brand-color);
+            border-radius: 50%; width: 44px; height: 44px;
+            animation: spin 1s linear infinite; margin: 16px auto;
+        }
+        @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .controls { flex-direction: column; }
+            .search-box, .filter-select, .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- ── Brand Switcher ────────────────────────────────────────── -->
+        <div class="brand-switcher" id="brandSwitcher"></div>
+
+        <div class="header" id="headerBar">
+            <h1 id="headerTitle">🍔 Multi-Brand Menu Mapping Validator</h1>
+            <p id="headerSubtitle">Unified Product Mapping Validation Dashboard</p>
+        </div>
+
+        <!-- ── Stats ─────────────────────────────────────────────────── -->
+        <div id="statsSection" class="stats-grid" style="display:none;">
+            <div class="stat-card info" data-filter="all" title="Click to show all products">
+                <h3>Total Products</h3>
+                <div class="stat-value" id="totalProducts">0</div>
+                <div class="stat-label">All products in catalog</div>
+            </div>
+            <div class="stat-card success" data-filter="mapped" title="Click to filter mapped products">
+                <h3>Mapped Products</h3>
+                <div class="stat-value" id="mappedProducts">0</div>
+                <div class="stat-label" id="mappedPercent">0%</div>
+            </div>
+            <div class="stat-card error" data-filter="unmapped" title="Click to filter real unmapped products">
+                <h3>Unmapped Products</h3>
+                <div class="stat-value" id="unmappedProducts">0</div>
+                <div class="stat-label">Non-virtual — needs POS mapping</div>
+            </div>
+            <div class="stat-card virtual" data-filter="virtual" style="border-top:4px solid #6366f1;" title="Click to view virtual products">
+                <h3>🏷 Virtual Products</h3>
+                <div class="stat-value" id="virtualCount" style="color:#6366f1;">0</div>
+                <div class="stat-label">isVirtual — no POS mapping needed</div>
+            </div>
+            <div class="stat-card warning" data-filter="contextual" title="Click to view contextual paths">
+                <h3>🔗 Contextual Products</h3>
+                <div class="stat-value" id="contextualCount">0</div>
+                <div class="stat-label">View all contextual paths ↓</div>
+            </div>
+        </div>
+
+        <!-- Insight banner -->
+        <div id="insightBanner" style="display:none;margin:8px 28px 0;">
+            <div id="insightBannerInner" style="border-radius:10px;padding:14px 20px;font-size:0.93em;line-height:1.6;"></div>
+        </div>
+
+        <!-- ── Delta Stats ────────────────────────────────────────────── -->
+        <div id="deltaStatsSection" class="stats-grid" style="display:none;">
+            <div class="stat-card" style="border-top:4px solid #374151;cursor:pointer;" onclick="filterDeltaStatus('all')">
+                <h3>Total Keys</h3>
+                <div class="stat-value" id="deltaTotalKeys" style="color:#374151;">0</div>
+                <div class="stat-label">All unique keys across both envs</div>
+            </div>
+            <div class="stat-card" style="border-top:4px solid #3b82f6;cursor:pointer;" onclick="filterDeltaStatus('UAT Only')">
+                <h3>🆕 UAT Only</h3>
+                <div class="stat-value" id="deltaUatOnly" style="color:#3b82f6;">0</div>
+                <div class="stat-label">In UAT — missing from PROD</div>
+            </div>
+            <div class="stat-card" style="border-top:4px solid #ef4444;cursor:pointer;" onclick="filterDeltaStatus('PROD Only')">
+                <h3>🗑️ PROD Only</h3>
+                <div class="stat-value" id="deltaProdOnly" style="color:#ef4444;">0</div>
+                <div class="stat-label">In PROD — missing from UAT</div>
+            </div>
+            <div class="stat-card" style="border-top:4px solid #f59e0b;cursor:pointer;" onclick="filterDeltaStatus('Modified')">
+                <h3>🔄 Modified</h3>
+                <div class="stat-value" id="deltaModified" style="color:#f59e0b;">0</div>
+                <div class="stat-label">Values differ between envs</div>
+            </div>
+            <div class="stat-card success" style="border-top:4px solid #10b981;cursor:pointer;" onclick="filterDeltaStatus('Matched')">
+                <h3>✅ Matched</h3>
+                <div class="stat-value" id="deltaMatched" style="color:#10b981;">0</div>
+                <div class="stat-label">Identical in both environments</div>
+            </div>
+        </div>
+
+        <!-- Delta insight banner -->
+        <div id="deltaInsightBanner" style="display:none;margin:8px 28px 0;">
+            <div id="deltaInsightBannerInner" style="border-radius:10px;padding:14px 20px;font-size:0.93em;line-height:1.6;"></div>
+        </div>
+
+        <div class="content">
+
+            <!-- ── Load-data panel ───────────────────────────────────── -->
+            <div id="loadDataSection" class="load-data-section">
+                <h2>📂 Load Validation Data</h2>
+
+                <!-- Tab switcher -->
+                <div style="display:flex;justify-content:center;gap:0;margin:20px auto 0;max-width:640px;border:2px solid var(--brand-color);border-radius:10px;overflow:hidden;">
+                    <button id="tabLocMasterBtn" onclick="switchTab('locmaster')"
+                        style="flex:1;padding:12px 16px;border:none;cursor:pointer;transition:all 0.2s;line-height:1.3;">
+                        <div style="font-weight:700;font-size:0.92em;">🔗 Location vs Master</div>
+                        <div style="font-size:0.75em;opacity:0.75;font-weight:400;">Validate POS mapping</div>
+                    </button>
+                    <button id="tabDeltaBtn" onclick="switchTab('delta')"
+                        style="flex:1;padding:12px 16px;border:none;border-left:2px solid var(--brand-color);cursor:pointer;transition:all 0.2s;line-height:1.3;">
+                        <div style="font-weight:700;font-size:0.92em;">🔄 UAT vs PROD Delta</div>
+                        <div style="font-size:0.75em;opacity:0.75;font-weight:400;">Compare master menus</div>
+                    </button>
+                </div>
+
+                <!-- Tab: Location vs Master -->
+                <div id="tabLocMaster" style="max-width:960px;margin:0 auto;padding:16px 0 8px;">
+                    <!-- Sub-tab switcher -->
+                    <div style="display:flex;justify-content:center;gap:0;margin:0 auto 16px;max-width:700px;border:2px solid var(--brand-color);border-radius:8px;overflow:hidden;">
+                        <button id="tabLocLiveBtn" onclick="switchLocMasterSubTab('live')"
+                            style="flex:1;padding:10px 14px;font-weight:700;font-size:0.86em;border:none;cursor:pointer;transition:all 0.2s;">
+                            &#x1F517; Live cURL
+                        </button>
+                        <button id="tabLocUploadBtn" onclick="switchLocMasterSubTab('upload')"
+                            style="flex:1;padding:10px 14px;font-weight:700;font-size:0.86em;border:none;border-left:2px solid var(--brand-color);cursor:pointer;transition:all 0.2s;">
+                            &#x1F4E4; Upload &amp; Compare
+                        </button>
+                        <button id="tabLocHistoryBtn" onclick="switchLocMasterSubTab('history')"
+                            style="flex:1;padding:10px 14px;font-weight:700;font-size:0.86em;border:none;border-left:2px solid var(--brand-color);cursor:pointer;transition:all 0.2s;">
+                            &#x1F4C1; History
+                        </button>
+                    </div>
+                    <!-- Sub-tab: Upload -->
+                    <div id="tabLocUpload" style="max-width:600px;margin:0 auto;padding:8px 0;">
+                        <p style="color:#6b7280;font-size:0.9em;margin-bottom:18px;">
+                            Upload your <strong>Location Menu</strong> and <strong>Master Menu</strong> JSON files.
+                        </p>
+                        <div style="display:flex;flex-direction:column;gap:14px;">
+                            <div style="display:flex;flex-direction:column;gap:5px;">
+                                <label style="font-weight:600;font-size:0.88em;color:#374151;">&#x1F4C4; Location Menu File</label>
+                                <label for="uatFileUpload" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fafafa;cursor:pointer;overflow:hidden;">
+                                    <span style="background:#e5e7eb;padding:3px 10px;border-radius:5px;font-size:0.82em;font-weight:600;white-space:nowrap;flex-shrink:0;">Choose file</span>
+                                    <span id="uatFileLabel" style="color:#9ca3af;font-size:0.83em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No file chosen</span>
+                                </label>
+                                <input id="uatFileUpload" type="file" accept=".json" style="display:none;"
+                                    onchange="const l=document.getElementById('uatFileLabel');l.textContent=this.files[0]?this.files[0].name:'No file chosen';l.style.color=this.files[0]?'#374151':'#9ca3af';" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:5px;">
+                                <label style="font-weight:600;font-size:0.88em;color:#374151;">&#x1F4CB; Master Menu File</label>
+                                <label for="masterFileUpload" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fafafa;cursor:pointer;overflow:hidden;">
+                                    <span style="background:#e5e7eb;padding:3px 10px;border-radius:5px;font-size:0.82em;font-weight:600;white-space:nowrap;flex-shrink:0;">Choose file</span>
+                                    <span id="masterFileLabel" style="color:#9ca3af;font-size:0.83em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No file chosen</span>
+                                </label>
+                                <input id="masterFileUpload" type="file" accept=".json" style="display:none;"
+                                    onchange="const l=document.getElementById('masterFileLabel');l.textContent=this.files[0]?this.files[0].name:'No file chosen';l.style.color=this.files[0]?'#374151':'#9ca3af';" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:5px;">
+                                <label style="font-weight:600;font-size:0.88em;color:#374151;">&#x1F4CD; Location ID <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+                                <input id="uploadLocationId" type="text" placeholder="e.g. 1000"
+                                    style="padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88em;background:#fff;color:#374151;width:100%;box-sizing:border-box;"
+                                    oninput="this.value=this.value.replace(/[^a-zA-Z0-9_-]/g,'')" />
+                            </div>
+                            <button id="compareUploadBtn" class="btn btn-primary" style="width:100%;padding:12px;font-size:1em;margin-top:4px;">
+                                &#x1F680; Upload &amp; Compare
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Sub-tab: Live cURL -->
+                    <div id="tabLocLive" style="display:none;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                            <!-- Location panel -->
+                            <div style="border:1.5px solid #e5e7eb;border-radius:10px;padding:14px;background:#fafafa;display:flex;flex-direction:column;gap:8px;">
+                                <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">
+                                    <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>
+                                    <span style="font-weight:700;font-size:0.88em;color:#374151;">Location Menu</span>
+                                </div>
+                                <textarea id="uatCurlInput" rows="7" spellcheck="false"
+                                    style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-family:monospace;font-size:0.78em;resize:vertical;background:#fff;line-height:1.5;"
+                                    placeholder="curl --location 'https://...' \&#10;  --header 'Authorization: Bearer ...'"></textarea>
+                                <div id="uatCurlStatus" style="display:none;font-size:0.78em;font-family:monospace;padding:6px 10px;border-radius:6px;"></div>
+                            </div>
+                            <!-- Master panel -->
+                            <div style="border:1.5px solid #e5e7eb;border-radius:10px;padding:14px;background:#f7f9fc;display:flex;flex-direction:column;gap:8px;">
+                                <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">
+                                    <div style="width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0;"></div>
+                                    <span style="font-weight:700;font-size:0.88em;color:#374151;">Master Menu</span>
+                                </div>
+                                <textarea id="masterCurlInput" rows="7" spellcheck="false"
+                                    style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-family:monospace;font-size:0.78em;resize:vertical;background:#fff;line-height:1.5;"
+                                    placeholder="curl --location 'https://...' \&#10;  --header 'Authorization: Bearer ...'"></textarea>
+                                <div id="masterCurlStatus" style="display:none;font-size:0.78em;font-family:monospace;padding:6px 10px;border-radius:6px;"></div>
+                            </div>
+                        </div>
+                        <button id="liveCompareBtn" class="btn btn-primary" style="width:100%;padding:14px;font-size:1.05em;">
+                            &#x25B6; Fetch Both &amp; Run Validation
+                        </button>
+                        <div id="liveCompareLog" style="display:none;margin-top:14px;padding:12px 16px;background:#f4f6f8;border:1px solid #e5e7eb;border-radius:8px;font-size:0.83em;font-family:monospace;color:#4b5563;line-height:2;"></div>
+                    </div>
+                    <!-- Sub-tab: Validation History -->
+                    <div id="tabLocHistory" style="display:none;max-width:960px;margin:0 auto;padding:8px 0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                            <p style="color:#6b7280;font-size:0.9em;margin:0;">Past validation runs saved for <strong id="historyBrandLabel">—</strong></p>
+                            <button onclick="loadValidationHistory()" style="padding:7px 16px;border:1.5px solid #d1d5db;border-radius:6px;background:#fff;font-size:0.82em;font-weight:600;cursor:pointer;color:#374151;">🔄 Refresh</button>
+                        </div>
+                        <div id="historyTableContainer" style="border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                            <div class="history-empty">Switch to this tab to auto-load history.</div>
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- Tab: Master Menu Mapping UAT vs PROD Delta -->
+                <div id="tabDelta" style="display:none;max-width:960px;margin:0 auto;padding:16px 0 8px;">
+                    <p style="color:#6b7280;font-size:0.9em;margin-bottom:14px;text-align:center;">
+                        Compare <strong>mappingLookup</strong> keys between UAT and PROD master menus &mdash; find new, removed, and changed entries side-by-side.
+                    </p>
+                    <!-- Delta sub-tab switcher -->
+                    <div style="display:flex;justify-content:center;gap:0;margin:0 auto 16px;max-width:700px;border:2px solid var(--brand-color);border-radius:8px;overflow:hidden;">
+                        <button id="tabDeltaLiveBtn" onclick="switchDeltaSubTab('live')"
+                            style="flex:1;padding:10px 14px;font-weight:700;font-size:0.86em;border:none;cursor:pointer;transition:all 0.2s;">
+                            &#x1F517; Live cURL
+                        </button>
+                        <button id="tabDeltaUploadBtn" onclick="switchDeltaSubTab('upload')"
+                            style="flex:1;padding:10px 14px;font-weight:700;font-size:0.86em;border:none;border-left:2px solid var(--brand-color);cursor:pointer;transition:all 0.2s;">
+                            &#x1F4E4; Upload Files
+                        </button>
+                        <button id="tabDeltaHistoryBtn" onclick="switchDeltaSubTab('history')"
+                            style="flex:1;padding:10px 14px;font-weight:700;font-size:0.86em;border:none;border-left:2px solid var(--brand-color);cursor:pointer;transition:all 0.2s;">
+                            &#x1F4C1; History
+                        </button>
+                    </div>
+                    <!-- Sub-tab: Live cURL -->
+                    <div id="tabDeltaLive">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                            <div style="border:1.5px solid #dde3ed;border-radius:10px;padding:14px;background:#f5f7fa;display:flex;flex-direction:column;gap:8px;">
+                                <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #bfdbfe;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;flex-shrink:0;"></div>
+                                    <span style="font-weight:700;font-size:0.88em;color:#1e40af;">&#x1F33F; UAT Master</span>
+                                </div>
+                                <textarea id="deltaUatCurlInput" rows="8" spellcheck="false"
+                                    style="width:100%;padding:10px 12px;border:1px solid #bfdbfe;border-radius:8px;font-family:monospace;font-size:0.78em;resize:vertical;background:#fff;line-height:1.5;"
+                                    placeholder="curl --location 'https://...' \&#10;  --header 'Authorization: Bearer ...' \&#10;  --header 'Cookie: ...'"></textarea>
+                                <div id="deltaUatCurlStatus" style="display:none;font-size:0.78em;font-family:monospace;padding:6px 10px;border-radius:6px;"></div>
+                            </div>
+                            <div style="border:1.5px solid #dde3ed;border-radius:10px;padding:14px;background:#f9f5f5;display:flex;flex-direction:column;gap:8px;">
+                                <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #fecaca;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0;"></div>
+                                    <span style="font-weight:700;font-size:0.88em;color:#991b1b;">&#x1F680; PROD Master</span>
+                                </div>
+                                <textarea id="deltaProdCurlInput" rows="8" spellcheck="false"
+                                    style="width:100%;padding:10px 12px;border:1px solid #fecaca;border-radius:8px;font-family:monospace;font-size:0.78em;resize:vertical;background:#fff;line-height:1.5;"
+                                    placeholder="curl --location 'https://...' \&#10;  --header 'Authorization: Bearer ...' \&#10;  --header 'Cookie: ...'"></textarea>
+                                <div id="deltaProdCurlStatus" style="display:none;font-size:0.78em;font-family:monospace;padding:6px 10px;border-radius:6px;"></div>
+                            </div>
+                        </div>
+                        <button id="deltaLiveCompareBtn" class="btn btn-primary" style="width:100%;padding:14px;font-size:1.05em;">
+                            &#x25B6; Fetch Both &amp; Run Delta
+                        </button>
+                        <div id="deltaLiveLog" style="display:none;margin-top:14px;padding:12px 16px;background:#f4f6f8;border:1px solid #e5e7eb;border-radius:8px;font-size:0.83em;font-family:monospace;color:#4b5563;line-height:2;"></div>
+                    </div>
+                    <!-- Sub-tab: Upload Files -->
+                    <div id="tabDeltaUpload" style="display:none;max-width:600px;margin:0 auto;padding:8px 0;">
+                        <p style="color:#6b7280;font-size:0.9em;margin-bottom:18px;text-align:left;">
+                            Upload your <strong>UAT Master</strong> and <strong>PROD Master</strong> JSON/TXT files.
+                        </p>
+                        <div style="display:flex;flex-direction:column;gap:14px;">
+                            <div style="display:flex;flex-direction:column;gap:5px;">
+                                <label style="font-weight:600;font-size:0.88em;color:#374151;">&#x1F33F; UAT Master File</label>
+                                <label for="deltaUatFileUpload" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fafafa;cursor:pointer;overflow:hidden;">
+                                    <span style="background:#e5e7eb;padding:3px 10px;border-radius:5px;font-size:0.82em;font-weight:600;white-space:nowrap;flex-shrink:0;">Choose file</span>
+                                    <span id="deltaUatFileLabel" style="color:#9ca3af;font-size:0.83em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No file chosen</span>
+                                </label>
+                                <input id="deltaUatFileUpload" type="file" accept=".json" style="display:none;"
+                                    onchange="const l=document.getElementById('deltaUatFileLabel');l.textContent=this.files[0]?this.files[0].name:'No file chosen';l.style.color=this.files[0]?'#374151':'#9ca3af';" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:5px;">
+                                <label style="font-weight:600;font-size:0.88em;color:#991b1b;">&#x1F680; PROD Master File</label>
+                                <label for="deltaProdFileUpload" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fafafa;cursor:pointer;overflow:hidden;">
+                                    <span style="background:#e5e7eb;padding:3px 10px;border-radius:5px;font-size:0.82em;font-weight:600;white-space:nowrap;flex-shrink:0;">Choose file</span>
+                                    <span id="deltaProdFileLabel" style="color:#9ca3af;font-size:0.83em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No file chosen</span>
+                                </label>
+                                <input id="deltaProdFileUpload" type="file" accept=".json" style="display:none;"
+                                    onchange="const l=document.getElementById('deltaProdFileLabel');l.textContent=this.files[0]?this.files[0].name:'No file chosen';l.style.color=this.files[0]?'#374151':'#9ca3af';" />
+                            </div>
+                            <button id="deltaUploadBtn" class="btn btn-primary" style="width:100%;padding:12px;font-size:1em;margin-top:4px;">
+                                &#x1F680; Upload &amp; Run Delta
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Sub-tab: Delta History -->
+                    <div id="tabDeltaHistory" style="display:none;max-width:960px;margin:0 auto;padding:8px 0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                            <p style="color:#6b7280;font-size:0.9em;margin:0;">Past UAT vs PROD delta runs saved for <strong id="deltaHistoryBrandLabel">—</strong></p>
+                            <button onclick="loadDeltaHistory()" style="padding:7px 16px;border:1.5px solid #d1d5db;border-radius:6px;background:#fff;font-size:0.82em;font-weight:600;cursor:pointer;color:#374151;">🔄 Refresh</button>
+                        </div>
+                        <div id="deltaHistoryTableContainer" style="border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                            <div class="history-empty">Switch to this tab to auto-load history.</div>
+                        </div>
+                    </div>
+                </div>
+</div>
+
+            <!-- Loading spinner -->
+            <div id="loadingOverlay" style="display:none;padding:50px 28px;text-align:center;">
+                <div class="loading"><div class="spinner"></div><p>Loading validation data…</p></div>
+            </div>
+
+            <!-- ── Main results ──────────────────────────────────────── -->
+            <div id="mainContent" style="display:none;">
+
+                <div style="padding:14px 0 0;">
+                    <div class="dl-toolbar">
+                        <button id="backToLoadBtn" onclick="goBackToLoad()"
+                            style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;background:#fff;color:var(--brand-color);border:2px solid var(--brand-color);border-radius:8px;font-weight:700;font-size:0.9em;cursor:pointer;transition:all 0.2s;">
+                            ← Back
+                        </button>
+                        <button class="btn-dl-lg btn-dl-json-lg" onclick="downloadCurrentJSON()" title="Download current results as JSON">
+                            ⬇ JSON
+                        </button>
+                        <button class="btn-dl-lg btn-dl-xlsx-lg" onclick="downloadLatestXlsx()" title="Download most recent Excel report">
+                            ⬇ Excel
+                        </button>
+                        <span id="dlStatusMsg" style="font-size:0.82em;color:#6b7280;"></span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">📊 All Products</h2>
+                    <div class="controls">
+                        <input type="text" id="searchBox" class="search-box" placeholder="🔍 Search by product name or ID…" />
+                        <select id="filterStatus" class="filter-select">
+                            <option value="all">All Products</option>
+                            <option value="mapped">Mapped Only</option>
+                            <option value="unmapped">Real Unmapped</option>
+                            <option value="virtual">Virtual Only</option>
+                        </select>
+                        <select id="filterSource" class="filter-select">
+                            <option value="all">All Sources</option>
+                            <option value="main">Main Menu Only</option>
+                            <option value="groups">In Product Groups</option>
+                        </select>
+                        <button id="filterAllBtn" onclick="setMappingFilter('all')"
+                            style="padding:7px 16px;border:2px solid var(--brand-color);border-radius:6px;font-weight:600;cursor:pointer;">
+                            All Products
+                        </button>
+                        <button id="filterContextualBtn" onclick="setMappingFilter('contextual')"
+                            style="padding:7px 16px;border:2px solid var(--brand-color);border-radius:6px;font-weight:600;cursor:pointer;">
+                            🔗 Contextual Only
+                        </button>
+                        <button id="refreshBtn" class="btn btn-primary">🔄 Refresh</button>
+                    </div>
+                    <div class="controls" style="margin-top:-6px;margin-bottom:16px;padding:10px 14px;background:#f8f9fb;border-radius:8px;border:1px solid #e5e7eb;">
+                        <span class="filter-label">🔬 Metadata Filters:</span>
+                        <select id="filterRecipe" class="filter-select" style="min-width:140px;">
+                            <option value="all">Recipe: All</option>
+                            <option value="yes">Recipe: Yes ✓</option>
+                            <option value="no">Recipe: No ✗</option>
+                        </select>
+                        <select id="filterDefault" class="filter-select" style="min-width:145px;">
+                            <option value="all">Default: All</option>
+                            <option value="yes">Default: Yes ✓</option>
+                            <option value="no">Default: No ✗</option>
+                        </select>
+                    </div>
+                    <div id="allProductsTableContainer" class="table-container">
+                        <table id="productsTable">
+                            <thead id="productsTableHead"></thead>
+                            <tbody id="productsTableBody">
+                                <tr><td colspan="13" class="no-data">No data loaded</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Contextual Mappings -->
+                <div class="section" id="contextualSection" style="display:none;">
+                    <h2 class="section-title">🔗 Contextual Mappings</h2>
+                    <p style="color:#6b7280;font-size:0.88em;margin-bottom:14px;">
+                        Products mapped via a <strong>parent#child</strong> key.
+                        <span style="color:#f59e0b;font-weight:600;">Click any pill to filter — click again to clear.</span>
+                    </p>
+                    <div id="contextualPills" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;"></div>
+                    <div class="table-container">
+                        <table id="contextualPathsTable">
+                            <thead id="contextualTableHead"></thead>
+                            <tbody id="contextualPathsBody">
+                                <tr><td colspan="10" class="no-data">No contextual mappings</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Delta main results -->
+            <div id="deltaMainContent" style="display:none;">
+
+                <div style="padding:14px 0 0;">
+                    <div class="dl-toolbar">
+                        <button onclick="goBackToLoad()"
+                            style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;background:#fff;color:var(--brand-color);border:2px solid var(--brand-color);border-radius:8px;font-weight:700;font-size:0.9em;cursor:pointer;transition:all 0.2s;">
+                            ← Back
+                        </button>
+                        <button class="btn-dl-lg btn-dl-json-lg" onclick="downloadCurrentDeltaJSON()" title="Download current delta as JSON">
+                            ⬇ JSON
+                        </button>
+                        <button class="btn-dl-lg btn-dl-xlsx-lg" onclick="downloadLatestDeltaXlsx()" title="Download most recent Delta Excel report">
+                            ⬇ Excel
+                        </button>
+                        <span id="dlDeltaStatusMsg" style="font-size:0.82em;color:#6b7280;"></span>
+                    </div>
+                </div>
+
+                <div class="section" style="margin-top:20px;">
+                    <h2 class="section-title">🔄 UAT vs PROD Delta — Master Menu Mapping</h2>
+                    <div class="controls">
+                        <input type="text" id="deltaSearchBox" class="search-box"
+                            placeholder="🔍 Search by key, parent ID, or child ID…"
+                            oninput="applyDeltaFilters()" />
+                        <select id="deltaFilterStatus" class="filter-select" onchange="applyDeltaFilters()">
+                            <option value="all">All Statuses</option>
+                            <option value="UAT Only">🆕 UAT Only</option>
+                            <option value="PROD Only">🗑️ PROD Only</option>
+                            <option value="Modified">🔄 Modified</option>
+                            <option value="Matched">✅ Matched</option>
+                        </select>
+                        <select id="deltaFilterCtx" class="filter-select" onchange="applyDeltaFilters()">
+                            <option value="all">All Key Types</option>
+                            <option value="direct">Direct Keys</option>
+                            <option value="contextual">Contextual (parent#child)</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="resetDeltaFilters()">🔄 Reset</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead id="deltaTableHead"></thead>
+                            <tbody id="deltaTableBody">
+                                <tr><td colspan="8" class="no-data">No delta data loaded</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+    </div><!-- /.container -->
+
+    <script>
+    /* ═══════════════════════════════════════════════════════════════════════════
+       STATE
+    ═══════════════════════════════════════════════════════════════════════════ */
+    const API = 'http://localhost:5000';
+    let allProducts = [];
+    let filteredProducts = [];
+    let allContextualPaths = [];
+    let _activeMappingFilter = 'all';
+    let _activeContextualFilter = null;
+    let _lastActiveTab = 'upload';
+
+    // Brand state
+    let brands = [];          // populated from /api/brands
+    let activeBrand = null;   // current BrandConfig object
+    let activeBrandCode = 'B1';
+    let _lastLocationId = null;  // location ID from last validation run
+
+    // Delta state
+    let allDeltaEntries      = [];
+    let filteredDeltaEntries = [];
+    let deltaAllFields       = ['posId'];
+
+    // Download / history state
+    let _lastResultJSON  = null;
+    let _lastDeltaJSON   = null;
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       BRAND MANAGEMENT
+    ═══════════════════════════════════════════════════════════════════════════ */
+    async function loadBrands() {
+        try {
+            const res = await fetch(`${API}/api/brands`);
+            const json = await res.json();
+            brands = json.brands || [];
+        } catch(e) {
+            // Fallback if server not running yet
+            brands = [
+                { code:'B1', name:"Brand One", emoji:'🍔', logoUrl:'https://www.google.com/s2/favicons?domain=brand1.example&sz=128', primaryColor:'#4a6480', primaryDark:'#2d3f52',
+                  gradientStart:'#4a6480', gradientEnd:'#2d3f52', sampleCurlLocation:'', sampleCurlMaster:'', extraMappingFields:['menuItemId','optionGroupId'] },
+                { code:'B2', name:'Brand Two', emoji:'🍗', logoUrl:'https://www.google.com/s2/favicons?domain=brand2.example&sz=128', primaryColor:'#0891b2', primaryDark:'#0e7490',
+                  gradientStart:'#0891b2', gradientEnd:'#164e63', sampleCurlLocation:'', sampleCurlMaster:'', extraMappingFields:['salesItemId','optionGroupId','menuItemId'] },
+            ];
+        }
+        buildBrandSwitcher();
+        selectBrand(activeBrandCode);
+    }
+
+    function buildBrandSwitcher() {
+        const container = document.getElementById('brandSwitcher');
+        container.innerHTML = '';
+        brands.forEach(b => {
+            const btn = document.createElement('button');
+            if (b.logoUrl) {
+                btn.innerHTML = `<img src="${b.logoUrl}" alt="${b.name}" style="height:28px;width:28px;object-fit:contain;vertical-align:middle;margin-right:8px;border-radius:50%;background:white;padding:2px;box-shadow:0 1px 4px rgba(0,0,0,0.25);" onerror="this.replaceWith(document.createTextNode('${b.emoji} '))"> ${b.name}`;
+            } else {
+                btn.textContent = `${b.emoji} ${b.name}`;
+            }
+            btn.setAttribute('data-brand', b.code);
+            btn.addEventListener('click', () => selectBrand(b.code));
+            container.appendChild(btn);
+        });
+    }
+
+    function selectBrand(code) {
+        activeBrandCode = code;
+        activeBrand = brands.find(b => b.code === code) || brands[0];
+        if (!activeBrand) return;
+
+        // Update switcher active state
+        document.querySelectorAll('.brand-switcher button').forEach(btn => {
+            const isActive = btn.getAttribute('data-brand') === code;
+            btn.classList.toggle('active', isActive);
+            if (isActive) {
+                btn.style.background = activeBrand.primaryColor;
+                btn.style.color = needsDarkText(activeBrand.primaryColor) ? '#000' : '#fff';
+            } else {
+                btn.style.background = '#475569';
+                btn.style.color = '#e2e8f0';
+            }
+        });
+
+        // CSS custom properties
+        const root = document.documentElement;
+        root.style.setProperty('--brand-color', activeBrand.primaryColor);
+        root.style.setProperty('--brand-dark',  activeBrand.primaryDark);
+        root.style.setProperty('--brand-text',  needsDarkText(activeBrand.primaryColor) ? '#000' : '#fff');
+
+        // Body background
+        document.body.style.background = '#f1f5f9';
+
+        // Header
+        const header = document.getElementById('headerBar');
+        header.style.background = `linear-gradient(135deg, ${activeBrand.gradientStart}, ${activeBrand.gradientEnd})`;
+        header.style.color = '#fff';
+        setPageHeader('load');
+
+        // Table header colour
+        document.querySelectorAll('thead').forEach(th => {
+            th.style.background = `linear-gradient(135deg, ${activeBrand.gradientStart}, ${activeBrand.gradientEnd})`;
+            th.style.color = '#fff';
+        });
+
+        // Tab styling
+        updateTabStyles();
+
+        // Pre-fill curl commands
+        if (activeBrand.sampleCurlLocation) {
+            document.getElementById('uatCurlInput').value = activeBrand.sampleCurlLocation;
+        } else {
+            document.getElementById('uatCurlInput').value = '';
+        }
+        if (activeBrand.sampleCurlMaster) {
+            document.getElementById('masterCurlInput').value = activeBrand.sampleCurlMaster;
+        } else {
+            document.getElementById('masterCurlInput').value = '';
+        }
+
+        // Pre-fill delta curl commands
+        const uatDeltaEl  = document.getElementById('deltaUatCurlInput');
+        const prodDeltaEl = document.getElementById('deltaProdCurlInput');
+        if (uatDeltaEl)  uatDeltaEl.value  = activeBrand.sampleCurlDeltaUat  || '';
+        if (prodDeltaEl) prodDeltaEl.value = activeBrand.sampleCurlDeltaProd || '';
+
+        // Reset data view when switching brands
+        goBackToLoad();
+    }
+
+    function needsDarkText(hex) {
+        const c = hex.replace('#','');
+        const r = parseInt(c.substr(0,2),16);
+        const g = parseInt(c.substr(2,2),16);
+        const b = parseInt(c.substr(4,2),16);
+        return (r*0.299 + g*0.587 + b*0.114) > 186;
+    }
+
+    function _buildLogoHtml() {
+        if (!activeBrand) return '';
+        return activeBrand.logoUrl
+            ? `<img src="${activeBrand.logoUrl}" alt="${activeBrand.name}" style="height:40px;width:40px;object-fit:contain;vertical-align:middle;margin-right:12px;border-radius:50%;background:white;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.3);" onerror="this.replaceWith(document.createTextNode('${activeBrand.emoji} '))">`
+            : `${activeBrand.emoji} `;
+    }
+
+    function setPageHeader(page) {
+        if (!activeBrand) return;
+        const logo = _buildLogoHtml();
+        const locPart = _lastLocationId ? `  •  Location: ${_lastLocationId}` : '';
+        const titles = {
+            load:       { title: `${logo}${activeBrand.name} — Menu Mapping Validator`,  sub: `Data Input & Configuration  •  ${activeBrand.code}` },
+            validation: { title: `${logo}${activeBrand.name} — Validation Results`,       sub: `Product Mapping Report  •  ${activeBrand.code}${locPart}` },
+            delta:      { title: `${logo}${activeBrand.name} — Delta Analysis`,            sub: `UAT vs PROD Comparison Report  •  ${activeBrand.code}` }
+        };
+        const h = titles[page] || titles.load;
+        document.getElementById('headerTitle').innerHTML    = h.title;
+        document.getElementById('headerSubtitle').textContent = h.sub;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       TAB MANAGEMENT
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function switchTab(tab) {
+        _lastActiveTab = tab;
+        const tabs = { locmaster:'tabLocMaster', delta:'tabDelta' };
+        const btns = { locmaster:'tabLocMasterBtn', delta:'tabDeltaBtn' };
+        Object.keys(tabs).forEach(k => {
+            const el  = document.getElementById(tabs[k]);
+            const btn = document.getElementById(btns[k]);
+            if (!el || !btn) return;
+            const active = k === tab;
+            el.style.display = active ? 'block' : 'none';
+            btn.style.background = active ? (activeBrand ? activeBrand.primaryColor : '#bd0019') : '#fff';
+            btn.style.color      = active ? (needsDarkText(activeBrand?.primaryColor||'#bd0019') ? '#000' : '#fff') : (activeBrand ? activeBrand.primaryColor : '#bd0019');
+        });
+        if (tab === 'delta')     switchDeltaSubTab('live');
+        if (tab === 'locmaster') switchLocMasterSubTab('live');
+    }
+    function updateTabStyles() {
+        const t = ['delta','locmaster'].find(k => {
+            const id = k === 'delta' ? 'tabDelta' : 'tabLocMaster';
+            const el = document.getElementById(id);
+            return el && el.style.display !== 'none';
+        }) || 'locmaster';
+        switchTab(t);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       CURL PARSER
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function parseCurlCommand(input) {
+        let cmd = input.replace(/\\\s*\r?\n\s*/g, ' ').trim();
+        cmd = cmd.replace(/^curl\s+/i, '');
+        const headers = {};
+        let url = '';
+        const tokens = [];
+        const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
+        let m;
+        while ((m = re.exec(cmd)) !== null) tokens.push(m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : m[3]));
+        const skipBool = new Set(['--location','-L','--compressed','--insecure','-k','--silent','-s','--verbose','-v','--include','-i']);
+        const skip1    = new Set(['-X','--request','--data','-d','--data-raw','--data-binary','--user','-u','--output','-o','--max-time','--connect-timeout','--proxy','-x','--user-agent','-A','--url']);
+        for (let i=0; i<tokens.length; i++) {
+            const t = tokens[i];
+            if (skipBool.has(t)) continue;
+            if (t==='--header'||t==='-H') { const h=tokens[++i]||''; const ci=h.indexOf(':'); if(ci>0) headers[h.slice(0,ci).trim()]=h.slice(ci+1).trim(); continue; }
+            if (t==='--url') { url=tokens[++i]||''; continue; }
+            if (skip1.has(t)) { i++; continue; }
+            if (t.startsWith('-')) { if(i+1<tokens.length&&!tokens[i+1].startsWith('-')) i++; continue; }
+            if (!url && (t.startsWith('http')||t.startsWith('//'))) url=t;
+        }
+        return { url, headers };
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DATA LOADING / PROCESSING
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function showLoading() {
+        _lastActiveTab = 'locmaster';
+        document.getElementById('loadDataSection').style.display='none';
+        document.getElementById('loadingOverlay').style.display='block';
+    }
+    function hideLoading() {
+        document.getElementById('loadingOverlay').style.display='none';
+        document.getElementById('loadDataSection').style.display='none';
+    }
+    function goBackToLoad() {
+        // Hide all results sections
+        document.getElementById('mainContent').style.display       = 'none';
+        document.getElementById('statsSection').style.display      = 'none';
+        document.getElementById('loadingOverlay').style.display    = 'none';
+        document.getElementById('deltaMainContent').style.display  = 'none';
+        document.getElementById('deltaStatsSection').style.display = 'none';
+        document.getElementById('deltaInsightBanner').style.display= 'none';
+        const banner = document.getElementById('insightBanner');
+        if (banner) banner.style.display = 'none';
+        const ctx = document.getElementById('contextualSection');
+        if (ctx) ctx.style.display = 'none';
+        // Show unified load panel and restore last active tab
+        document.getElementById('loadDataSection').style.display   = 'block';
+        _lastLocationId = null;
+        setPageHeader('load');
+        switchTab(_lastActiveTab || 'locmaster');
+    }
+
+    function processLoadedData(data) {
+        try {
+            if (data && data.products && Array.isArray(data.products)) {
+                allProducts = data.products;
+                allContextualPaths = Array.isArray(data.contextualPaths) ? data.contextualPaths : [];
+                _lastResultJSON = data;
+                _lastLocationId = (data.metadata && data.metadata.location_id) ? data.metadata.location_id : null;
+            } else { throw new Error('Invalid data format'); }
+            hideLoading();
+            document.getElementById('statsSection').style.display='grid';
+            document.getElementById('mainContent').style.display='block';
+            setPageHeader('validation');
+            updateDashboard();
+        } catch(e) {
+            alert('Error loading data: '+e.message);
+            goBackToLoad();
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DASHBOARD UPDATE
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function updateDashboard() {
+        filteredProducts = allProducts;
+        const total   = allProducts.length;
+        const mapped  = allProducts.filter(p => p.isMapped).length;
+        const virt    = allProducts.filter(p => p.isVirtual);
+        const realUn  = allProducts.filter(p => !p.isMapped && !p.isVirtual);
+        const virtUn  = allProducts.filter(p => !p.isMapped && p.isVirtual);
+        const ctxCnt  = allContextualPaths.length;
+
+        document.getElementById('totalProducts').textContent   = total;
+        document.getElementById('mappedProducts').textContent  = mapped;
+        document.getElementById('mappedPercent').textContent   = total ? `${((mapped/total)*100).toFixed(2)}%` : '0%';
+        document.getElementById('unmappedProducts').textContent= realUn.length;
+        document.getElementById('virtualCount').textContent    = virtUn.length;
+        document.getElementById('contextualCount').textContent = ctxCnt;
+
+        // Insight banner
+        const banner = document.getElementById('insightBanner');
+        const inner  = document.getElementById('insightBannerInner');
+        banner.style.display = 'block';
+        if (realUn.length === 0) {
+            inner.style.cssText = 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px 20px;font-size:0.88em;line-height:1.6;';
+            inner.innerHTML = `<strong style="color:#15803d;">✓ All non-virtual products are mapped!</strong>
+                All ${virtUn.length} unmapped product${virtUn.length!==1?'s':''} have <code>isVirtual: true</code>.`;
+        } else {
+            const names = realUn.map(p => `<strong>${p.displayName}</strong> <span style="font-family:monospace;font-size:0.85em;color:#6b7280;">(${p.id})</span>`).join(', ');
+            inner.style.cssText = 'background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:14px 20px;font-size:0.88em;line-height:1.6;';
+            inner.innerHTML = `<strong style="color:#b91c1c;">⚠ ${realUn.length} non-virtual product${realUn.length!==1?'s':''} missing POS mapping:</strong>
+                ${names}.<br><span style="color:#6b7280;">${virtUn.length} other unmapped product${virtUn.length!==1?'s are':' is'} virtual (expected).</span>`;
+        }
+
+        buildDynamicTableHeaders();
+        renderProductsTable();
+        renderContextualTable();
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DYNAMIC TABLE HEADERS (brand-specific columns)
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function _fieldLabel(f) {
+        return f.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/Id/g,'ID').replace(/^./,c=>c.toUpperCase());
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DELTA SUB-TAB MANAGEMENT
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function switchDeltaSubTab(tab) {
+        const live       = document.getElementById('tabDeltaLive');
+        const upload     = document.getElementById('tabDeltaUpload');
+        const history    = document.getElementById('tabDeltaHistory');
+        const liveBtn    = document.getElementById('tabDeltaLiveBtn');
+        const uploadBtn  = document.getElementById('tabDeltaUploadBtn');
+        const historyBtn = document.getElementById('tabDeltaHistoryBtn');
+        if (!live || !upload || !liveBtn || !uploadBtn) return;
+        const bc   = activeBrand ? activeBrand.primaryColor : '#2563eb';
+        const txtA = needsDarkText(bc) ? '#000' : '#fff';
+        live.style.display    = tab === 'live'    ? 'block' : 'none';
+        upload.style.display  = tab === 'upload'  ? 'block' : 'none';
+        if (history)    history.style.display    = tab === 'history' ? 'block' : 'none';
+        liveBtn.style.background    = tab === 'live'    ? bc : '#fff';
+        liveBtn.style.color         = tab === 'live'    ? txtA : bc;
+        uploadBtn.style.background  = tab === 'upload'  ? bc : '#fff';
+        uploadBtn.style.color       = tab === 'upload'  ? txtA : bc;
+        if (historyBtn) { historyBtn.style.background = tab === 'history' ? bc : '#fff'; historyBtn.style.color = tab === 'history' ? txtA : bc; }
+        if (tab === 'history') loadDeltaHistory();
+    }
+
+    function switchLocMasterSubTab(tab) {
+        const upload     = document.getElementById('tabLocUpload');
+        const live       = document.getElementById('tabLocLive');
+        const history    = document.getElementById('tabLocHistory');
+        const uploadBtn  = document.getElementById('tabLocUploadBtn');
+        const liveBtn    = document.getElementById('tabLocLiveBtn');
+        const historyBtn = document.getElementById('tabLocHistoryBtn');
+        if (!upload || !live || !uploadBtn || !liveBtn) return;
+        const bc   = activeBrand ? activeBrand.primaryColor : '#2563eb';
+        const txtA = needsDarkText(bc) ? '#000' : '#fff';
+        upload.style.display  = tab === 'upload'  ? 'block' : 'none';
+        live.style.display    = tab === 'live'    ? 'block' : 'none';
+        if (history)    history.style.display    = tab === 'history' ? 'block' : 'none';
+        uploadBtn.style.background  = tab === 'upload'  ? bc : '#fff';
+        uploadBtn.style.color       = tab === 'upload'  ? txtA : bc;
+        liveBtn.style.background    = tab === 'live'    ? bc : '#fff';
+        liveBtn.style.color         = tab === 'live'    ? txtA : bc;
+        if (historyBtn) { historyBtn.style.background = tab === 'history' ? bc : '#fff'; historyBtn.style.color = tab === 'history' ? txtA : bc; }
+        if (tab === 'history') loadValidationHistory();
+    }
+
+    function showDeltaLoading() {
+        _lastActiveTab = 'delta';
+        document.getElementById('loadDataSection').style.display = 'none';
+        document.getElementById('loadingOverlay').style.display  = 'block';
+    }
+    function hideDeltaLoading() { hideLoading(); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DELTA DATA PROCESSING
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function processDeltaData(data) {
+        try {
+            if (!data || !data.entries || !Array.isArray(data.entries)) {
+                throw new Error('Invalid delta response format');
+            }
+            allDeltaEntries = data.entries;
+            deltaAllFields  = (data.metadata && data.metadata.all_fields) ? data.metadata.all_fields : ['posId'];
+            _lastDeltaJSON  = data;
+            hideDeltaLoading();
+            setPageHeader('delta');
+            updateDeltaDashboard(data.metadata);
+        } catch(e) {
+            alert('Error processing delta data: ' + e.message);
+            goBackToLoad();
+        }
+    }
+
+    function updateDeltaDashboard(meta) {
+        const total    = allDeltaEntries.length;
+        const uatOnly  = allDeltaEntries.filter(e => e.deltaStatus === 'UAT Only').length;
+        const prodOnly = allDeltaEntries.filter(e => e.deltaStatus === 'PROD Only').length;
+        const modified = allDeltaEntries.filter(e => e.deltaStatus === 'Modified').length;
+        const matched  = allDeltaEntries.filter(e => e.deltaStatus === 'Matched').length;
+
+        document.getElementById('deltaTotalKeys').textContent = total;
+        document.getElementById('deltaUatOnly').textContent   = uatOnly;
+        document.getElementById('deltaProdOnly').textContent  = prodOnly;
+        document.getElementById('deltaModified').textContent  = modified;
+        document.getElementById('deltaMatched').textContent   = matched;
+        document.getElementById('deltaStatsSection').style.display = 'grid';
+
+        // Insight banner
+        const inner = document.getElementById('deltaInsightBannerInner');
+        const banner = document.getElementById('deltaInsightBanner');
+        banner.style.display = 'block';
+        const syncPct = meta ? meta.sync_health_pct : (total ? ((matched/total)*100).toFixed(2)+'%' : '0%');
+        if (uatOnly === 0 && prodOnly === 0 && modified === 0) {
+            inner.style.cssText = 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px 20px;font-size:0.88em;line-height:1.6;';
+            inner.innerHTML = `<strong style="color:#15803d;">✅ UAT and PROD masters are fully in sync!</strong>
+                All ${matched} mappingLookup keys are identical. Sync health: <strong>${syncPct}</strong>.`;
+        } else {
+            const parts = [];
+            if (uatOnly  > 0) parts.push(`<strong style="color:#1d4ed8;">${uatOnly} UAT-only</strong>`);
+            if (prodOnly > 0) parts.push(`<strong style="color:#b91c1c;">${prodOnly} PROD-only</strong>`);
+            if (modified > 0) parts.push(`<strong style="color:#d97706;">${modified} modified</strong>`);
+            inner.style.cssText = 'background:#fefce8;border:1.5px solid #fde047;border-radius:10px;padding:14px 20px;font-size:0.88em;line-height:1.6;';
+            inner.innerHTML = `<strong style="color:#854d0e;">⚠ Delta detected:</strong> ${parts.join(', ')} entr${(uatOnly+prodOnly+modified)!==1?'ies':'y'} differ.
+                ${matched} matched. Sync health: <strong>${syncPct}</strong>.`;
+        }
+
+        buildDeltaTableHeaders();
+        filteredDeltaEntries = allDeltaEntries;
+        renderDeltaTable();
+
+        document.getElementById('deltaMainContent').style.display = 'block';
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DELTA TABLE
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function buildDeltaTableHeaders() {
+        const head = document.getElementById('deltaTableHead');
+        if (!head) return;
+        const bc = activeBrand ? activeBrand.gradientStart : '#1e40af';
+        const be = activeBrand ? activeBrand.gradientEnd   : '#1e3a8a';
+        const tc = (activeBrand && activeBrand.code === 'B2') ? '#FFB612' : '#fff';
+
+        let th = '<tr>';
+        th += '<th style="min-width:220px;">Key</th><th>Status</th><th>Type</th><th style="min-width:120px;">Parent ID</th><th style="min-width:100px;">Child ID</th>';
+        deltaAllFields.forEach(f => {
+            th += `<th>UAT ${_fieldLabel(f)}</th>`;
+            th += `<th>PROD ${_fieldLabel(f)}</th>`;
+        });
+        th += '<th>Field Diff</th></tr>';
+        head.innerHTML = th;
+        head.style.background = `linear-gradient(135deg, ${bc}, ${be})`;
+        head.style.color = tc;
+    }
+
+    function renderDeltaTable() {
+        const tbody = document.getElementById('deltaTableBody');
+        if (!tbody) return;
+        const cols = 5 + deltaAllFields.length * 2 + 1;
+
+        if (!filteredDeltaEntries.length) {
+            tbody.innerHTML = `<tr><td colspan="${cols}" class="no-data">No entries match the current filters</td></tr>`;
+            return;
+        }
+
+        const statusStyle = {
+            'UAT Only':  { bg:'#eff6ff', badge:'badge-info',    icon:'🆕' },
+            'PROD Only': { bg:'#fff1f2', badge:'badge-error',   icon:'🗑️' },
+            'Modified':  { bg:'#fffbeb', badge:'badge-warning', icon:'🔄' },
+            'Matched':   { bg:'#f0fdf4', badge:'badge-success', icon:'✅' },
+        };
+
+        tbody.innerHTML = filteredDeltaEntries.map(e => {
+            const ss  = statusStyle[e.deltaStatus] || { bg:'', badge:'badge-info', icon:'' };
+            const isCtx = e.isContextual;
+            let row = `<tr style="background:${ss.bg}">`;
+            row += `<td style="font-family:monospace;font-size:0.82em;word-break:break-word;min-width:220px;color:#374151;">${e.key}</td>`;
+            row += `<td><span class="badge ${ss.badge}">${ss.icon} ${e.deltaStatus}</span></td>`;
+            row += `<td><span class="badge ${isCtx?'badge-warning':'badge-info'}">${isCtx?'Contextual':'Direct'}</span></td>`;
+            row += `<td style="font-family:monospace;font-size:0.82em;color:#1d4ed8;">${e.parentId||'-'}</td>`;
+            row += `<td style="font-family:monospace;font-size:0.82em;color:#92400e;">${e.childId||'-'}</td>`;
+            deltaAllFields.forEach(f => {
+                const uv = e[`uat_${f}`]  ?? '—';
+                const pv = e[`prod_${f}`] ?? '—';
+                const changed = (e.deltaStatus === 'Modified') && uv !== pv;
+                row += `<td style="font-family:monospace;font-size:0.82em;color:${changed?'#1d4ed8':'#374151'};${changed?'font-weight:700;':''}">${uv||'—'}</td>`;
+                row += `<td style="font-family:monospace;font-size:0.82em;color:${changed?'#b91c1c':'#374151'};${changed?'font-weight:700;':''}">${pv||'—'}</td>`;
+            });
+            const diff = e.fieldDiff || '';
+            row += `<td style="font-size:0.80em;color:${diff?'#b45309':'#999'};max-width:260px;word-break:break-word;">${diff||'—'}</td>`;
+            row += '</tr>';
+            return row;
+        }).join('');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DELTA FILTERS
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function applyDeltaFilters() {
+        const search = (document.getElementById('deltaSearchBox')?.value || '').toLowerCase();
+        const st     = document.getElementById('deltaFilterStatus')?.value || 'all';
+        const ct     = document.getElementById('deltaFilterCtx')?.value    || 'all';
+
+        filteredDeltaEntries = allDeltaEntries.filter(e => {
+            const mSearch = !search || e.key.toLowerCase().includes(search) ||
+                (e.parentId||'').toLowerCase().includes(search) ||
+                (e.childId||'').toLowerCase().includes(search);
+            const mStatus = st === 'all' || e.deltaStatus === st;
+            const mCtx    = ct === 'all' ||
+                (ct === 'contextual' && e.isContextual) ||
+                (ct === 'direct'     && !e.isContextual);
+            return mSearch && mStatus && mCtx;
+        });
+        renderDeltaTable();
+    }
+
+    function filterDeltaStatus(status) {
+        // Called from stat card clicks
+        const sel = document.getElementById('deltaFilterStatus');
+        if (sel) { sel.value = status; applyDeltaFilters(); }
+    }
+
+    function resetDeltaFilters() {
+        const sb = document.getElementById('deltaSearchBox');
+        const sf = document.getElementById('deltaFilterStatus');
+        const cf = document.getElementById('deltaFilterCtx');
+        if (sb) sb.value = '';
+        if (sf) sf.value = 'all';
+        if (cf) cf.value = 'all';
+        filteredDeltaEntries = allDeltaEntries;
+        renderDeltaTable();
+    }
+
+    function getExtraFields() {
+        return (activeBrand && activeBrand.extraMappingFields) ? activeBrand.extraMappingFields : [];
+    }
+
+    function buildDynamicTableHeaders() {
+        const extras = getExtraFields();
+
+        // Products table head
+        const pHead = document.getElementById('productsTableHead');
+        let cols = '<tr><th>Product ID</th><th>Display Name</th><th>Category</th><th>Status</th><th>POS ID</th>';
+        extras.forEach(f => cols += `<th>${_fieldLabel(f)}</th>`);
+        cols += '<th>Virtual</th><th>Recipe</th><th>Default</th><th>Qty Min</th><th>Qty Max</th><th>Source</th><th>Product Groups</th><th>Used By</th></tr>';
+        pHead.innerHTML = cols;
+
+        // Contextual table head
+        const cHead = document.getElementById('contextualTableHead');
+        let ccols = '<tr><th>Contextual Key</th><th>Parent Product ID</th><th>Child Product ID</th><th>Child Display Name</th><th>POS ID</th>';
+        extras.forEach(f => ccols += `<th>${_fieldLabel(f)}</th>`);
+        ccols += '<th>Virtual</th><th>Recipe</th><th>Default</th><th>Qty Min</th><th>Qty Max</th></tr>';
+        cHead.innerHTML = ccols;
+
+        // Recolour table heads
+        document.querySelectorAll('thead').forEach(th => {
+            th.style.background = `linear-gradient(135deg, ${activeBrand.gradientStart}, ${activeBrand.gradientEnd})`;
+            th.style.color = activeBrand.code === 'B2' ? '#FFB612' : '#fff';
+        });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       TABLE RENDERING
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function renderProductsTable() {
+        const tbody = document.getElementById('productsTableBody');
+        const extras = getExtraFields();
+        const totalCols = 14 + extras.length;
+
+        if (!filteredProducts.length) {
+            tbody.innerHTML = `<tr><td colspan="${totalCols}" class="no-data">No products match the filters</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = filteredProducts.map(p => {
+            const isRealUn = !p.isMapped && !p.isVirtual;
+            const isVirtUn = !p.isMapped && p.isVirtual;
+            const style = isRealUn ? 'background:#fff5f5;' : isVirtUn ? 'background:#f0f9ff;' : '';
+
+            let row = `<tr style="${style}">
+                <td class="product-id">${p.id}</td>
+                <td><strong>${p.displayName}</strong></td>
+                <td><span style="color:#4b5563;background:#f0f2f5;padding:2px 8px;border-radius:4px;white-space:nowrap;">${p.category||'-'}</span></td>
+                <td><span class="badge ${p.isMapped?'badge-success':isRealUn?'badge-error':'badge-warning'}">${p.isMapped?'✓ Mapped':isRealUn?'⚠ Unmapped':'○ Virtual'}</span></td>
+                <td style="font-family:monospace;color:#374151;">${p.posId||'-'}</td>`;
+
+            extras.forEach(f => {
+                row += `<td style="font-family:monospace;color:#374151;">${p[f]||'-'}</td>`;
+            });
+
+            row += `<td><span class="badge ${p.isVirtual?'badge-warning':'badge-info'}">${p.isVirtual?'Yes':'No'}</span></td>
+                <td><span class="badge ${p.isRecipe?'badge-success':'badge-info'}">${p.isRecipe?'Yes':'No'}</span></td>
+                <td><span class="badge ${p.isDefault?'badge-success':'badge-info'}">${p.isDefault?'Yes':'No'}</span></td>
+                <td style="text-align:center;">${p.quantityMin!=null?p.quantityMin:'-'}</td>
+                <td style="text-align:center;">${p.quantityMax!=null?p.quantityMax:'-'}</td>
+                <td>${(p.source||[]).join(', ')}</td>
+                <td class="groups-list">${p.groups&&p.groups.length?p.groups.slice(0,3).join(', ')+(p.groups.length>3?'…':''):'-'}</td>
+                <td class="groups-list" title="${(p.usedBy||[]).join('\n')}">${p.usedBy&&p.usedBy.length?p.usedBy.slice(0,2).join(', ')+(p.usedBy.length>2?' (+' + (p.usedBy.length-2) + ' more)':''):'-'}</td>
+            </tr>`;
+            return row;
+        }).join('');
+    }
+
+    function renderContextualTable() {
+        const section = document.getElementById('contextualSection');
+        const pillBox = document.getElementById('contextualPills');
+        const tbody   = document.getElementById('contextualPathsBody');
+        if (!section||!pillBox||!tbody) return;
+
+        const paths = allContextualPaths;
+        if (!paths.length) { section.style.display='none'; return; }
+        _activeContextualFilter = null;
+
+        const extras = getExtraFields();
+        const seenIds = new Set();
+        const pills = [];
+        paths.forEach(p => {
+            if (seenIds.has(p.childProductId)) return;
+            seenIds.add(p.childProductId);
+            const count = paths.filter(x => x.childProductId===p.childProductId).length;
+            pills.push(`<span data-child-id="${p.childProductId}" title="${p.childDisplayName||p.childProductId} — ${count} path${count>1?'s':''}"
+                onclick="filterContextualPaths('${p.childProductId}')"
+                style="display:inline-block;background:#fff7ed;border:1.5px solid #f59e0b;border-radius:20px;
+                       padding:4px 13px;font-family:monospace;font-size:0.80em;font-weight:700;color:#92400e;
+                       cursor:pointer;white-space:nowrap;transition:background 0.15s,color 0.15s;">
+                ${p.childProductId} <span style="font-size:0.78em;opacity:0.7;margin-left:4px;">(${count})</span></span>`);
+        });
+        pillBox.innerHTML = pills.join('');
+        _renderCtxRows(paths, extras, tbody);
+    }
+
+    function _renderCtxRows(paths, extras, tbody) {
+        tbody.innerHTML = paths.map(p => {
+            let row = `<tr>
+                <td style="font-family:monospace;word-break:break-all;color:#374151;">${p.contextualKey}</td>
+                <td style="font-family:monospace;color:#1d4ed8;">${p.parentProductId}</td>
+                <td style="font-family:monospace;color:#92400e;">${p.childProductId}</td>
+                <td>${p.childDisplayName||'-'}</td>
+                <td style="font-family:monospace;color:#374151;">${p.posId||'-'}</td>`;
+            extras.forEach(f => row += `<td style="font-family:monospace;color:#374151;">${p[f]||'-'}</td>`);
+            row += `<td><span class="badge ${p.isVirtual?'badge-warning':'badge-info'}">${p.isVirtual?'Yes':'No'}</span></td>
+                <td><span class="badge ${p.isRecipe?'badge-success':'badge-info'}">${p.isRecipe?'Yes':'No'}</span></td>
+                <td><span class="badge ${p.isDefault?'badge-success':'badge-info'}">${p.isDefault?'Yes':'No'}</span></td>
+                <td style="text-align:center;">${p.quantityMin!=null?p.quantityMin:'-'}</td>
+                <td style="text-align:center;">${p.quantityMax!=null?p.quantityMax:'-'}</td>
+            </tr>`;
+            return row;
+        }).join('');
+    }
+
+    function filterContextualPaths(childId) {
+        _activeContextualFilter = (_activeContextualFilter===childId) ? null : childId;
+        // Update pill styles
+        document.querySelectorAll('#contextualPills span[data-child-id]').forEach(el => {
+            const isActive = el.getAttribute('data-child-id')===_activeContextualFilter;
+            el.style.background = isActive ? '#f59e0b' : '#fff7ed';
+            el.style.color      = isActive ? '#fff' : '#92400e';
+        });
+        const paths = _activeContextualFilter ? allContextualPaths.filter(p=>p.childProductId===_activeContextualFilter) : allContextualPaths;
+        _renderCtxRows(paths, getExtraFields(), document.getElementById('contextualPathsBody'));
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       FILTERS
+    ═══════════════════════════════════════════════════════════════════════════ */
+    function setMappingFilter(val) {
+        _activeMappingFilter = val;
+        const allBtn = document.getElementById('filterAllBtn');
+        const ctxBtn = document.getElementById('filterContextualBtn');
+        const bc = activeBrand ? activeBrand.primaryColor : '#bd0019';
+        const txtActive = needsDarkText(bc) ? '#000' : '#fff';
+        [allBtn,ctxBtn].forEach(b => { b.style.border=`2px solid ${bc}`; });
+        allBtn.style.background = val==='all' ? bc : '#fff';
+        allBtn.style.color      = val==='all' ? txtActive : bc;
+        ctxBtn.style.background = val==='contextual' ? bc : '#fff';
+        ctxBtn.style.color      = val==='contextual' ? txtActive : bc;
+
+        const tblContainer = document.getElementById('allProductsTableContainer');
+        const ctxSection   = document.getElementById('contextualSection');
+        if (val==='contextual') {
+            if (tblContainer) tblContainer.style.display='none';
+            if (ctxSection) { ctxSection.style.display='block'; setTimeout(()=>ctxSection.scrollIntoView({behavior:'smooth',block:'start'}),150); }
+        } else {
+            if (tblContainer) tblContainer.style.display='';
+            if (ctxSection) ctxSection.style.display='none';
+        }
+        applyFilters();
+    }
+
+    function applyFilters(searchTerm) {
+        const searchBox = document.getElementById('searchBox');
+        const statusFilter = document.getElementById('filterStatus');
+        const sourceFilter = document.getElementById('filterSource');
+        if (!searchBox||!statusFilter||!sourceFilter) return;
+
+        const search = searchTerm !== undefined ? searchTerm : searchBox.value.toLowerCase();
+        const st = statusFilter.value;
+        const src = sourceFilter.value;
+        const mt = _activeMappingFilter;
+        const rec = document.getElementById('filterRecipe')?.value || 'all';
+        const def = document.getElementById('filterDefault')?.value || 'all';
+
+        filteredProducts = allProducts.filter(p => {
+            const mSearch = !search || p.id.toLowerCase().includes(search) || p.displayName.toLowerCase().includes(search) || (p.category||'').toLowerCase().includes(search);
+            const mStatus = st==='all' || (st==='mapped'&&p.isMapped) || (st==='unmapped'&&!p.isMapped&&!p.isVirtual) || (st==='virtual'&&p.isVirtual&&!p.isMapped);
+            const mMapping = mt==='all' || (mt==='contextual'&&p.mappingType==='Contextual');
+            const mSource = src==='all' || (src==='main'&&p.source.includes('main_products')) || (src==='groups'&&p.groups&&p.groups.length>0);
+            const mRec = rec==='all' || (rec==='yes'&&p.isRecipe) || (rec==='no'&&!p.isRecipe);
+            const mDef = def==='all' || (def==='yes'&&p.isDefault) || (def==='no'&&!p.isDefault);
+            return mSearch && mStatus && mMapping && mSource && mRec && mDef;
+        });
+        renderProductsTable();
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       EVENT LISTENERS
+    ═══════════════════════════════════════════════════════════════════════════ */
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // Load brand configs
+        loadBrands();
+
+        // Search
+        document.getElementById('searchBox')?.addEventListener('input', e => applyFilters(e.target.value.toLowerCase()));
+
+        // Filter selects
+        ['filterStatus','filterSource','filterRecipe','filterDefault'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', ()=>applyFilters());
+        });
+
+        // Refresh
+        document.getElementById('refreshBtn')?.addEventListener('click', function() {
+            document.getElementById('searchBox').value='';
+            document.getElementById('filterStatus').value='all';
+            document.getElementById('filterSource').value='all';
+            document.getElementById('filterRecipe').value='all';
+            document.getElementById('filterDefault').value='all';
+            setMappingFilter('all');
+            document.querySelectorAll('.stat-card').forEach(c=>c.classList.remove('active'));
+            updateDashboard();
+        });
+
+        // Stat card clicks
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const filter = this.getAttribute('data-filter');
+                document.querySelectorAll('.stat-card').forEach(c=>c.classList.remove('active'));
+                this.classList.add('active');
+                if (filter==='contextual') { setMappingFilter('contextual'); return; }
+                document.getElementById('searchBox').value='';
+                document.getElementById('filterSource').value='all';
+                _activeMappingFilter='all';
+                const bc = activeBrand ? activeBrand.primaryColor : '#bd0019';
+                const txtA = needsDarkText(bc)?'#000':'#fff';
+                const allBtn = document.getElementById('filterAllBtn');
+                const ctxBtn = document.getElementById('filterContextualBtn');
+                if(allBtn){allBtn.style.background=bc;allBtn.style.color=txtA;}
+                if(ctxBtn){ctxBtn.style.background='#fff';ctxBtn.style.color=bc;}
+                const tbl = document.getElementById('allProductsTableContainer');
+                if(tbl) tbl.style.display='';
+                document.getElementById('filterStatus').value = filter==='all'?'all':filter==='mapped'?'mapped':filter==='unmapped'?'unmapped':'virtual';
+                applyFilters();
+            });
+        });
+
+        // Upload compare
+        document.getElementById('compareUploadBtn')?.addEventListener('click', async function() {
+            const uatFile = document.getElementById('uatFileUpload').files[0];
+            const masterFile = document.getElementById('masterFileUpload').files[0];
+            if (!uatFile||!masterFile) { alert('Please select both files.'); return; }
+            showLoading();
+            try {
+                const fd = new FormData();
+                fd.append('uat_file', uatFile);
+                fd.append('master_file', masterFile);
+                const locId = document.getElementById('uploadLocationId').value.trim();
+                if (locId) fd.append('location_id', locId);
+                const res = await fetch(`${API}/api/${activeBrandCode}/compare/upload`, { method:'POST', body:fd });
+                const result = await res.json();
+                if (result.status==='success'&&result.data) { processLoadedData(result.data); }
+                else throw new Error(result.message||'Upload compare failed');
+            } catch(e) { alert('Upload compare failed: '+e.message); hideLoading(); goBackToLoad(); }
+        });
+
+        // Live cURL compare (existing loc-master mode)
+        document.getElementById('liveCompareBtn')?.addEventListener('click', async function() {
+            const uatRaw = document.getElementById('uatCurlInput').value.trim();
+            const masterRaw = document.getElementById('masterCurlInput').value.trim();
+            if (!uatRaw) { alert('Please paste the Location curl command.'); return; }
+            if (!masterRaw) { alert('Please paste the Master curl command.'); return; }
+
+            const uatP = parseCurlCommand(uatRaw);
+            const masterP = parseCurlCommand(masterRaw);
+            const uatSt = document.getElementById('uatCurlStatus');
+            const mstSt = document.getElementById('masterCurlStatus');
+            const log   = document.getElementById('liveCompareLog');
+
+            const setStatus = (el, ok, msg) => { el.style.display='block'; el.style.background=ok?'#dcfce7':'#fee2e2'; el.style.color=ok?'#166534':'#991b1b'; el.textContent=msg; };
+
+            if (!uatP.url.startsWith('http')) { setStatus(uatSt,false,'Invalid URL'); return; }
+            if (!masterP.url.startsWith('http')) { setStatus(mstSt,false,'Invalid URL'); return; }
+
+            uatSt.style.display='none'; mstSt.style.display='none';
+            this.textContent='⏳ Fetching & Validating…'; this.disabled=true;
+            [uatSt,mstSt].forEach(el=>{el.style.display='block';el.style.background='#fef9c3';el.style.color='#854d0e';el.textContent='⏳ Fetching…';});
+            log.style.display='block'; log.innerHTML=`▶ Sending to /api/${activeBrandCode}/compare/live …`;
+
+            try {
+                const resp = await fetch(`${API}/api/${activeBrandCode}/compare/live`, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ uat_url:uatP.url, uat_headers:uatP.headers, master_url:masterP.url, master_headers:masterP.headers })
+                });
+                const result = await resp.json();
+                if (result.status==='success'&&result.data) {
+                    setStatus(uatSt,true,'✅ Fetched'); setStatus(mstSt,true,'✅ Fetched');
+                    log.innerHTML='✅ Loading results…';
+                    showLoading(); processLoadedData(result.data);
+                } else {
+                    setStatus(uatSt,false,'❌ Error'); setStatus(mstSt,false,'❌ Error');
+                    log.innerHTML=`❌ ${result.message||JSON.stringify(result)}`;
+                }
+            } catch(e) {
+                setStatus(uatSt,false,'❌ Failed'); setStatus(mstSt,false,'❌ Failed');
+                log.innerHTML=`❌ ${e.message}<br>Make sure api_server.py is running.`;
+            } finally { this.textContent='▶ Fetch Both & Run Validation'; this.disabled=false; }
+        });
+        // ── Delta: Live cURL compare ─────────────────────────────────────────
+        document.getElementById('deltaLiveCompareBtn')?.addEventListener('click', async function() {
+            const uatRaw  = document.getElementById('deltaUatCurlInput').value.trim();
+            const prodRaw = document.getElementById('deltaProdCurlInput').value.trim();
+            if (!uatRaw)  { alert('Please paste the UAT Master curl command.');  return; }
+            if (!prodRaw) { alert('Please paste the PROD Master curl command.'); return; }
+
+            const uatP  = parseCurlCommand(uatRaw);
+            const prodP = parseCurlCommand(prodRaw);
+            const uatSt  = document.getElementById('deltaUatCurlStatus');
+            const prdSt  = document.getElementById('deltaProdCurlStatus');
+            const log    = document.getElementById('deltaLiveLog');
+
+            const setStatus = (el, ok, msg) => {
+                el.style.display='block';
+                el.style.background = ok ? '#dcfce7' : '#fee2e2';
+                el.style.color      = ok ? '#166534' : '#991b1b';
+                el.textContent = msg;
+            };
+
+            if (!uatP.url.startsWith('http'))  { setStatus(uatSt,  false, 'Invalid URL'); return; }
+            if (!prodP.url.startsWith('http')) { setStatus(prdSt, false, 'Invalid URL'); return; }
+
+            uatSt.style.display='none'; prdSt.style.display='none';
+            this.textContent='⏳ Fetching & Comparing…'; this.disabled=true;
+            [uatSt, prdSt].forEach(el => { el.style.display='block'; el.style.background='#fef9c3'; el.style.color='#854d0e'; el.textContent='⏳ Fetching…'; });
+            log.style.display='block';
+            log.innerHTML = `▶ Sending to /api/${activeBrandCode}/master-delta/compare/live …`;
+
+            try {
+                const resp = await fetch(`${API}/api/${activeBrandCode}/master-delta/compare/live`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        uat_url:      uatP.url,
+                        uat_headers:  uatP.headers,
+                        prod_url:     prodP.url,
+                        prod_headers: prodP.headers,
+                    }),
+                });
+                const result = await resp.json();
+                if (result.status === 'success' && result.data) {
+                    setStatus(uatSt,  true, '✅ Fetched');
+                    setStatus(prdSt, true, '✅ Fetched');
+                    log.innerHTML = '✅ Processing delta results…';
+                    showDeltaLoading();
+                    processDeltaData(result.data);
+                } else {
+                    setStatus(uatSt,  false, '❌ Error');
+                    setStatus(prdSt, false, '❌ Error');
+                    log.innerHTML = `❌ ${result.message || JSON.stringify(result)}`;
+                }
+            } catch(e) {
+                setStatus(uatSt,  false, '❌ Failed');
+                setStatus(prdSt, false, '❌ Failed');
+                log.innerHTML = `❌ ${e.message}<br>Make sure api_server.py is running.`;
+            } finally {
+                this.textContent = '▶ Fetch Both & Run Delta';
+                this.disabled = false;
+            }
+        });
+
+        // ── Delta: Upload compare ─────────────────────────────────────────────
+        document.getElementById('deltaUploadBtn')?.addEventListener('click', async function() {
+            const uatFile  = document.getElementById('deltaUatFileUpload').files[0];
+            const prodFile = document.getElementById('deltaProdFileUpload').files[0];
+            if (!uatFile)  { alert('Please select the UAT master file.');  return; }
+            if (!prodFile) { alert('Please select the PROD master file.'); return; }
+            showDeltaLoading();
+            try {
+                const fd = new FormData();
+                fd.append('uat_file',  uatFile);
+                fd.append('prod_file', prodFile);
+                const res    = await fetch(`${API}/api/${activeBrandCode}/master-delta/compare/upload`, { method:'POST', body:fd });
+                const result = await res.json();
+                if (result.status === 'success' && result.data) {
+                    processDeltaData(result.data);
+                } else {
+                    throw new Error(result.message || 'Delta upload compare failed');
+                }
+            } catch(e) {
+                alert('Delta compare failed: ' + e.message);
+                hideDeltaLoading();
+                goBackToLoad();
+            }
+        });
+
+    });
+
+    /* ═══════════════════════════════════════════════════════════════════════════════
+       HISTORY
+    ═══════════════════════════════════════════════════════════════════════════════ */
+    async function loadValidationHistory() {
+        const container = document.getElementById('historyTableContainer');
+        const label     = document.getElementById('historyBrandLabel');
+        if (!container) return;
+        if (label) label.textContent = activeBrand ? activeBrand.name : activeBrandCode;
+        container.innerHTML = '<div class="history-empty">⏳ Loading…</div>';
+        try {
+            const res  = await fetch(`${API}/api/${activeBrandCode}/reports/history`);
+            const json = await res.json();
+            if (json.status !== 'success') throw new Error(json.message || 'Failed');
+            if (!json.reports || !json.reports.length) {
+                container.innerHTML = '<div class="history-empty">No validation reports found for this brand.<br>Run a comparison to generate one.</div>';
+                return;
+            }
+            const bc = activeBrand ? activeBrand.primaryColor : '#2563eb';
+            const gs = activeBrand ? activeBrand.gradientStart : '#1e40af';
+            const ge = activeBrand ? activeBrand.gradientEnd   : '#1e3a8a';
+            const tc = (activeBrand && activeBrand.code === 'B2') ? '#FFB612' : '#fff';
+            let html = `<table class="history-table">
+                <thead style="background:linear-gradient(135deg,${gs},${ge});color:${tc};">
+                    <tr><th>Date / Time</th><th style="text-align:center;">Location ID</th><th style="text-align:center;">Total</th><th style="text-align:center;">Mapped</th><th style="text-align:center;">Mapped %</th><th style="text-align:center;">Real Unmapped<br><span style="font-weight:400;font-size:0.82em;opacity:0.85;">(non-virtual only)</span></th><th style="text-align:center;">Actions</th></tr>
+                </thead><tbody>`;
+            json.reports.forEach(r => {
+                html += `<tr>
+                    <td style="white-space:nowrap;font-weight:600;">${r.timestamp}</td>
+                    <td style="text-align:center;font-family:monospace;font-size:0.9em;">${r.location_id || '—'}</td>
+                    <td style="text-align:center;">${r.total || '—'}</td>
+                    <td style="text-align:center;color:#16a34a;font-weight:600;">${r.mapped || '—'}</td>
+                    <td style="text-align:center;">${r.mapped_pct || '—'}</td>
+                    <td style="text-align:center;color:#dc2626;font-weight:600;">${r.unmapped != null ? r.unmapped : '—'}</td>
+                    <td style="text-align:center;white-space:nowrap;">
+                        <button class="btn-dl btn-dl-json" onclick="downloadReportFile('${r.filename}','${activeBrandCode}')">⬇ JSON</button>
+                        ${r.has_xlsx ? `<button class="btn-dl btn-dl-xlsx" style="margin-left:5px;" onclick="downloadReportFile('${r.xlsx_filename}','${activeBrandCode}')">⬇ Excel</button>` : ''}
+                        <button class="btn-dl btn-dl-load" style="background:${bc};margin-left:5px;" onclick="loadHistoryReport('${r.filename}')">&#9654; Load</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } catch(e) {
+            container.innerHTML = `<div class="history-empty">❌ Error loading history: ${e.message}</div>`;
+        }
+    }
+
+    async function loadDeltaHistory() {
+        const container = document.getElementById('deltaHistoryTableContainer');
+        const label     = document.getElementById('deltaHistoryBrandLabel');
+        if (!container) return;
+        if (label) label.textContent = activeBrand ? activeBrand.name : activeBrandCode;
+        container.innerHTML = '<div class="history-empty">⏳ Loading…</div>';
+        try {
+            const res  = await fetch(`${API}/api/${activeBrandCode}/delta-reports/history`);
+            const json = await res.json();
+            if (json.status !== 'success') throw new Error(json.message || 'Failed');
+            if (!json.reports || !json.reports.length) {
+                container.innerHTML = '<div class="history-empty">No delta reports found for this brand.<br>Run a UAT vs PROD comparison to generate one.</div>';
+                return;
+            }
+            const bc = activeBrand ? activeBrand.primaryColor : '#2563eb';
+            const gs = activeBrand ? activeBrand.gradientStart : '#1e40af';
+            const ge = activeBrand ? activeBrand.gradientEnd   : '#1e3a8a';
+            const tc = (activeBrand && activeBrand.code === 'B2') ? '#FFB612' : '#fff';
+            let html = `<table class="history-table">
+                <thead style="background:linear-gradient(135deg,${gs},${ge});color:${tc};">
+                    <tr><th>Date / Time</th><th style="text-align:center;">Total Keys</th><th style="text-align:center;color:#93c5fd;">UAT Only</th><th style="text-align:center;color:#fca5a5;">PROD Only</th><th style="text-align:center;color:#fde68a;">Modified</th><th style="text-align:center;color:#86efac;">Matched</th><th style="text-align:center;">Sync %</th><th style="text-align:center;">Actions</th></tr>
+                </thead><tbody>`;
+            json.reports.forEach(r => {
+                html += `<tr>
+                    <td style="white-space:nowrap;font-weight:600;">${r.timestamp}</td>
+                    <td style="text-align:center;">${r.total != null ? r.total : '—'}</td>
+                    <td style="text-align:center;color:#2563eb;font-weight:600;">${r.uat_only != null ? r.uat_only : '—'}</td>
+                    <td style="text-align:center;color:#dc2626;font-weight:600;">${r.prod_only != null ? r.prod_only : '—'}</td>
+                    <td style="text-align:center;color:#d97706;font-weight:600;">${r.modified != null ? r.modified : '—'}</td>
+                    <td style="text-align:center;color:#16a34a;font-weight:600;">${r.matched != null ? r.matched : '—'}</td>
+                    <td style="text-align:center;">${r.sync_health_pct || '—'}</td>
+                    <td style="text-align:center;white-space:nowrap;">
+                        <button class="btn-dl btn-dl-json" onclick="downloadDeltaReportFile('${r.filename}','${activeBrandCode}')">⬇ JSON</button>
+                        ${r.has_xlsx ? `<button class="btn-dl btn-dl-xlsx" style="margin-left:5px;" onclick="downloadDeltaReportFile('${r.xlsx_filename}','${activeBrandCode}')">⬇ Excel</button>` : ''}
+                        <button class="btn-dl btn-dl-load" style="background:${bc};margin-left:5px;" onclick="loadDeltaHistoryReport('${r.filename}')">&#9654; Load</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } catch(e) {
+            container.innerHTML = `<div class="history-empty">❌ Error loading delta history: ${e.message}</div>`;
+        }
+    }
+
+    async function loadHistoryReport(filename) {
+        showLoading();
+        try {
+            const res    = await fetch(`${API}/api/${activeBrandCode}/reports/load/${encodeURIComponent(filename)}`);
+            const result = await res.json();
+            if (result.status === 'success' && result.data) {
+                processLoadedData(result.data);
+            } else {
+                throw new Error(result.message || 'Failed to load report');
+            }
+        } catch(e) { alert('Failed to load report: ' + e.message); hideLoading(); goBackToLoad(); }
+    }
+
+    async function loadDeltaHistoryReport(filename) {
+        showDeltaLoading();
+        try {
+            const res    = await fetch(`${API}/api/${activeBrandCode}/delta-reports/load/${encodeURIComponent(filename)}`);
+            const result = await res.json();
+            if (result.status === 'success' && result.data) {
+                processDeltaData(result.data);
+            } else {
+                throw new Error(result.message || 'Failed to load report');
+            }
+        } catch(e) { alert('Failed to load delta report: ' + e.message); hideDeltaLoading(); goBackToLoad(); }
+    }
+
+    function downloadReportFile(filename, brand) {
+        const a = document.createElement('a');
+        a.href = `${API}/api/${brand}/reports/download/${encodeURIComponent(filename)}`;
+        a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    function downloadDeltaReportFile(filename, brand) {
+        const a = document.createElement('a');
+        a.href = `${API}/api/${brand}/delta-reports/download/${encodeURIComponent(filename)}`;
+        a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════════
+       DOWNLOAD CURRENT RESULTS
+    ═══════════════════════════════════════════════════════════════════════════════ */
+    function downloadCurrentJSON() {
+        if (!_lastResultJSON) { alert('No validation data to download. Run a comparison first.'); return; }
+        const ts   = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+        const blob = new Blob([JSON.stringify(_lastResultJSON, null, 2)], {type:'application/json'});
+        const a    = document.createElement('a');
+        a.href     = URL.createObjectURL(blob);
+        a.download = `Validation_${activeBrandCode}_${ts}.json`;
+        a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    function downloadCurrentDeltaJSON() {
+        if (!_lastDeltaJSON) { alert('No delta data to download. Run a delta comparison first.'); return; }
+        const ts   = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+        const blob = new Blob([JSON.stringify(_lastDeltaJSON, null, 2)], {type:'application/json'});
+        const a    = document.createElement('a');
+        a.href     = URL.createObjectURL(blob);
+        a.download = `Delta_${activeBrandCode}_${ts}.json`;
+        a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    function downloadLatestXlsx() {
+        const msg = document.getElementById('dlStatusMsg');
+        if (msg) { msg.textContent = '⏳ Preparing…'; }
+        const a = document.createElement('a');
+        a.href  = `${API}/api/${activeBrandCode}/reports/download-latest-xlsx`;
+        a.download = '';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        if (msg) { msg.textContent = '✅ Excel download started'; setTimeout(()=>msg.textContent='', 3000); }
+    }
+
+    function downloadLatestDeltaXlsx() {
+        const msg = document.getElementById('dlDeltaStatusMsg');
+        if (msg) { msg.textContent = '⏳ Preparing…'; }
+        const a = document.createElement('a');
+        a.href  = `${API}/api/${activeBrandCode}/delta-reports/download-latest-xlsx`;
+        a.download = '';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        if (msg) { msg.textContent = '✅ Excel download started'; setTimeout(()=>msg.textContent='', 3000); }
+    }
+    </script>
+</body>
+</html>

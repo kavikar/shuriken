@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "appium-mcp": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "appium-mcp@latest"],
+      "env": {
+        "ANDROID_HOME": "C:/Users/youruser/AppData/Local/Android/Sdk",
+        "NO_UI": "true"
+      }
+    }
+  }
+}

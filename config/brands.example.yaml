@@ -1,0 +1,29 @@
+# ─────────────────────────────────────────────────────────────────
+#  Brand Configuration — App IDs & Metadata (EXAMPLE / TEMPLATE)
+#
+#  Central source of truth for app identifiers per brand.
+#  Referenced by mobile flows via env variables.
+#
+#  Copy to brands.yaml and replace placeholder values with your own.
+#  Keep real app IDs and brand names out of source control.
+# ─────────────────────────────────────────────────────────────────
+
+brand1:
+  appId: com.example.brand1.uat
+  name: Brand One
+  shortCode: b1
+
+brand2:
+  appId: com.example.brand2.uat
+  name: Brand Two
+  shortCode: b2
+
+brand3:
+  appId: com.example.brand3.uat
+  name: Brand Three
+  shortCode: b3
+
+brand4:
+  appId: com.example.brand4.uat
+  name: Brand Four
+  shortCode: b4

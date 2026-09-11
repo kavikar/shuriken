@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────────
+#  B2 — Smoke: Store Search
+#
+#  Verifies store search by zip code returns results and a
+#  store can be selected.
+#
+#  Run:  maestro test flows/b2/smoke/store-search.yaml
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+tags:
+  - smoke
+  - b2
+  - store
+
+env:
+  BUNDLE_ID: com.example.brand2.uat
+  LOCATION_QUERY: "00000"
+  LOCATION_ID: "2000"
+
+---
+
+# Launch app & dismiss dialogs
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+# Dismiss "Close modal" if tech difficulties appear
+- runFlow:
+    when:
+      visible: "Close modal"
+    commands:
+      - tapOn: "Close modal"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# Search for store
+- runFlow: ../../../shared/select-location.yaml
+
+# Verify we landed on the menu / store page
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: screenshots/b2_store_selected_${output.RUN_ID}
+
+- evalScript: ${console.log('PASSED - B2 store search smoke test')}

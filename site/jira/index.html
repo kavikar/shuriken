@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jira Flow Console</title>
+  <link rel="stylesheet" href="../assets/uniform.css">
+  <style>
+    .tabs { display:flex; gap:8px; margin-bottom:12px; }
+    .tab { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+    .tab.active { border-color: var(--accent); }
+    .panel { padding: 16px; }
+    .panel.hidden { display:none; }
+    .row { display:grid; gap:10px; grid-template-columns: 1fr 1fr; margin-bottom:10px; }
+    .out { min-height:160px; white-space:pre-wrap; font-family: Consolas, monospace; background: #10131d; border:1px solid var(--border); border-radius:10px; padding:12px; }
+    @media (max-width: 760px){ .row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a class="nav-back" href="../index.html">← Back to dashboard</a>
+  <h1>Jira Flow Console</h1>
+  <p style="color:var(--text-muted)">Mock implementation with realistic command outputs.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="offers">Offer Flow</button>
+    <button class="tab" data-tab="executioner">Executioner</button>
+    <button class="tab" data-tab="loyalty">Loyalty</button>
+  </div>
+
+  <section id="offers" class="panel card">
+    <div class="row"><input id="offersEpics" placeholder="EPIC-1001,EPIC-1002"><input id="offersPlatforms" value="WEB,APP"></div>
+    <div class="row"><input id="offersFrom" type="date"><input id="offersTo" type="date"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-primary" id="offersRun">Run Offer Flow</button>
+      <button class="btn-secondary" id="offersCopy">Copy Command</button>
+      <button class="btn-secondary" id="offersClear">Clear</button>
+    </div>
+    <p id="offersStatus" style="color:var(--text-muted)">Ready.</p>
+    <div id="offersOut" class="out">No execution yet.</div>
+  </section>
+
+  <section id="executioner" class="panel card hidden">
+    <div class="row"><select id="execAction"><option>dry-run</option><option>upload</option><option>report</option><option>status-list</option></select><input id="execTe" placeholder="TE-1001"></div>
+    <div class="row"><input id="execFile" placeholder="results.csv"><input id="execComment" placeholder="Optional comment"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-primary" id="execRun">Run Executioner</button>
+      <button class="btn-secondary" id="execCopy">Copy Command</button>
+      <button class="btn-secondary" id="execClear">Clear</button>
+    </div>
+    <p id="execStatus" style="color:var(--text-muted)">Ready.</p>
+    <div id="execOut" class="out">No execution yet.</div>
+  </section>
+
+  <section id="loyalty" class="panel card hidden">
+    <div class="row"><input id="loyaltyEpics" placeholder="EPIC-2001"><select id="loyaltyMode"><option>dry-run</option><option>create</option></select></div>
+    <label><input type="checkbox" id="loyaltySkip"> Skip xray sync</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+      <button class="btn-primary" id="loyaltyRun">Run Loyalty Flow</button>
+      <button class="btn-secondary" id="loyaltyCopy">Copy Command</button>
+      <button class="btn-secondary" id="loyaltyClear">Clear</button>
+    </div>
+    <p id="loyaltyStatus" style="color:var(--text-muted)">Ready.</p>
+    <div id="loyaltyOut" class="out">No execution yet.</div>
+  </section>
+</div>
+<script>
+const today = new Date().toISOString().slice(0,10);
+document.getElementById('offersFrom').value=today;document.getElementById('offersTo').value=today;
+for (const b of document.querySelectorAll('.tab')) {
+  b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));document.getElementById(b.dataset.tab).classList.remove('hidden');};
+}
+async function post(path, body){ const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return r.json(); }
+function copy(txt){ navigator.clipboard.writeText(txt); }
+
+document.getElementById('offersRun').onclick=async()=>{
+  const payload={epics:document.getElementById('offersEpics').value,platforms:document.getElementById('offersPlatforms').value.split(','),from:document.getElementById('offersFrom').value,to:document.getElementById('offersTo').value,mode:'preview'};
+  const data=await post('/api/offers',payload); document.getElementById('offersStatus').textContent='Completed.'; document.getElementById('offersOut').textContent=data.output||JSON.stringify(data,null,2);
+};
+document.getElementById('offersCopy').onclick=()=>copy('npm run offers:preview -- --epics ' + document.getElementById('offersEpics').value);
+document.getElementById('offersClear').onclick=()=>{document.getElementById('offersEpics').value='';document.getElementById('offersOut').textContent='No execution yet.';};
+
+document.getElementById('execRun').onclick=async()=>{const data=await post('/api/executioner',{action:document.getElementById('execAction').value,te:document.getElementById('execTe').value,file:document.getElementById('execFile').value,comment:document.getElementById('execComment').value});document.getElementById('execStatus').textContent='Completed.';document.getElementById('execOut').textContent=data.output||JSON.stringify(data,null,2);};
+document.getElementById('execCopy').onclick=()=>copy('npm run ' + document.getElementById('execAction').value + ' -- --te ' + document.getElementById('execTe').value);
+document.getElementById('execClear').onclick=()=>{document.getElementById('execTe').value='';document.getElementById('execOut').textContent='No execution yet.';};
+
+document.getElementById('loyaltyRun').onclick=async()=>{const data=await post('/api/loyalty',{epics:document.getElementById('loyaltyEpics').value,mode:document.getElementById('loyaltyMode').value,skipXray:document.getElementById('loyaltySkip').checked});document.getElementById('loyaltyStatus').textContent='Completed.';document.getElementById('loyaltyOut').textContent=data.output||JSON.stringify(data,null,2);};
+document.getElementById('loyaltyCopy').onclick=()=>copy('npm run lwl:' + document.getElementById('loyaltyMode').value + ' -- --epics ' + document.getElementById('loyaltyEpics').value);
+document.getElementById('loyaltyClear').onclick=()=>{document.getElementById('loyaltyEpics').value='';document.getElementById('loyaltyOut').textContent='No execution yet.';};
+</script>
+</body>
+</html>

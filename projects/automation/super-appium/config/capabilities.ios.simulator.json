@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "platformName": "iOS",
+    "appium:automationName": "XCUITest",
+    "appium:deviceName": "iPhone 15",
+    "appium:bundleId": "com.example.brand3.uat",
+    "appium:newCommandTimeout": 180,
+    "appium:noReset": true
+  }
+}

@@ -1,0 +1,79 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Place Order & Verify Confirmation
+#
+#  Taps "Place Order", handles ROKT ad popup and TOAST TIME
+#  error dialog, then verifies the order confirmation screen.
+#
+#  Expects env:
+#    BUNDLE_ID — app bundle/package id
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+
+---
+
+# ── Place Order ──
+- extendedWaitUntil:
+    visible:
+      id: "Checkout.pressables.submit"
+    timeout: 10000
+
+- takeScreenshot: screenshots/pre_place_order_${output.RUN_ID}
+
+- tapOn:
+    id: "Checkout.pressables.submit"
+
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# ── Handle ROKT ad popup (if shown) ──
+- runFlow:
+    when:
+      visible: "Close"
+    commands:
+      - tapOn:
+          text: "Close"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+# ── Handle "TOAST TIME" error dialog (if shown) ──
+# This is a Brand Three custom error popup (e.g. "Failed to add credit card")
+# that can appear after placing order. Just dismiss it via the X button.
+- runFlow:
+    when:
+      visible: "TOAST TIME"
+    commands:
+      - evalScript: ${console.log('TOAST TIME error dialog detected - dismissing')}
+      - takeScreenshot: screenshots/toast_time_error_${output.RUN_ID}
+      - tapOn:
+          id: "Close modal"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+# ── Verify Order Confirmation screen ──
+- extendedWaitUntil:
+    visible:
+      id: "Orderstatus.text.confirmation"
+    timeout: 40000
+
+- assertVisible:
+    id: "Orderstatus.text.confirmation"
+
+# ── Capture confirmation number as evidence ──
+- copyTextFrom:
+    id: "Orderstatus.text.confirmation"
+- evalScript: ${console.log('ORDER CONFIRMED - Confirmation = ' + maestro.copiedText)}
+
+- takeScreenshot: screenshots/order_confirmation_${output.RUN_ID}
+
+# Try to also capture order number if visible
+- runFlow:
+    when:
+      visible:
+        id: "Orderstatus.text.orderNumber"
+    commands:
+      - copyTextFrom:
+          id: "Orderstatus.text.orderNumber"
+      - evalScript: ${console.log('Order Number = ' + maestro.copiedText)}
+
+- evalScript: ${console.log('ORDER VERIFICATION COMPLETE - screenshot saved as evidence')}

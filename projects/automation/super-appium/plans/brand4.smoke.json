@@ -1,0 +1,27 @@
+{
+  "brand": "Brand Four",
+  "env": "uat",
+  "platform": "android",
+  "suite": "smoke",
+  "tests": [
+    {
+      "key": "SMK-brand4-001",
+      "title": "Launch and home visibility",
+      "objective": "Validate app launches and home surface is stable.",
+      "checkpoints": [
+        "Launch screen reached",
+        "Home screen visible",
+        "No blocking modal prevents progress"
+      ]
+    },
+    {
+      "key": "SMK-brand4-002",
+      "title": "Navigate to order entry",
+      "objective": "Validate navigation from home to menu/order entry surface.",
+      "checkpoints": [
+        "Navigation control is available",
+        "Order entry or menu surface is visible"
+      ]
+    }
+  ]
+}

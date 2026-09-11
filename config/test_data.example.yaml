@@ -1,0 +1,94 @@
+# ─────────────────────────────────────────────────────────────────
+#  Centralized Test Data Configuration (EXAMPLE / TEMPLATE)
+#
+#  Single source of truth for test users, locations, payments,
+#  products, and timeouts. Referenced by mobile runners which
+#  inject values as env variables.
+#
+#  Template data only. Do NOT commit real user data or live cards.
+# ─────────────────────────────────────────────────────────────────
+
+# ══════════════════════════════════════════════════════════════
+#  Per-brand test data (repeat block per brand as needed)
+# ══════════════════════════════════════════════════════════════
+brand1:
+  bundleId: "com.example.brand1.uat"
+
+  testUsers:
+    guest:
+      firstName: "TestGuest"
+      lastName: "User"
+      email: "guest@example.com"
+      phone: "5555550100"
+    registered:
+      firstName: "Test"
+      lastName: "User"
+      email: "user@example.com"
+      password: "replace_me"
+      phone: "5555550100"
+
+  testLocations:
+    default:
+      zipCode: "00000"
+      storeName: "1 Example St"
+      storeId: "1000"
+
+  testCards:
+    # Standard non-routable test card numbers only.
+    visa:
+      firstName: "Test"
+      lastName: "User"
+      number: "4111111111111111"
+      expiry: "1230"
+      cvv: "123"
+      zip: "00000"
+    mastercard:
+      firstName: "Test"
+      lastName: "User"
+      number: "5555555555554444"
+      expiry: "1230"
+      cvv: "123"
+      zip: "00000"
+
+  testProducts:
+    default:
+      category: "Category A"
+      item: "Item Alpha"
+
+brand2:
+  bundleId: "com.example.brand2.uat"
+  testUsers:
+    registered:
+      firstName: "Test"
+      lastName: "User"
+      email: "user@example.com"
+      password: "replace_me"
+      phone: "5555550100"
+  testLocations:
+    default:
+      zipCode: "00000"
+      storeName: "2 Example Ave"
+      storeId: "1001"
+  testProducts:
+    default:
+      category: "Category B"
+      item: "Item Bravo"
+
+# ══════════════════════════════════════════════════════════════
+#  SHARED / GLOBAL
+# ══════════════════════════════════════════════════════════════
+timeouts:
+  quick: 5000
+  medium: 10000
+  network: 20000
+  payment: 40000
+  scroll: 50000
+
+appConfig:
+  defaultBrand: "brand1"
+  android:
+    bundleIds:
+      brand1: "com.example.brand1.uat"
+      brand2: "com.example.brand2.uat"
+      brand3: "com.example.brand3.uat"
+      brand4: "com.example.brand4.uat"

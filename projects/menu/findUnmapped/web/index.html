@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Unmapped Product Checker</title>
+	<style>
+		body { font-family: Segoe UI, Arial, sans-serif; margin: 0; background: #0f1117; color: #e4e6f0; }
+		.wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+		.card { background: #1a1d27; border: 1px solid #2e3348; border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+		h1 { margin: 0 0 8px; }
+		.muted { color: #9ba1b8; }
+		.row { display: flex; gap: 12px; flex-wrap: wrap; }
+		.group { flex: 1; min-width: 240px; }
+		label { display: block; font-size: 13px; color: #9ba1b8; margin-bottom: 6px; }
+		select, input, textarea { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #2e3348; background: #242836; color: #e4e6f0; }
+		textarea { min-height: 86px; }
+		button { border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+		.btn-primary { background: #6c63ff; color: #fff; }
+		.btn-secondary { background: #2e3348; color: #e4e6f0; }
+		.btn-row { display: flex; gap: 10px; margin-top: 12px; }
+		.tabs { display: flex; border: 1px solid #2e3348; border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+		.tab { flex: 1; background: #242836; color: #9ba1b8; border: none; padding: 10px; }
+		.tab.active { background: #6c63ff; color: #fff; }
+		.tab-content { display: none; }
+		.tab-content.active { display: block; }
+		.drop { border: 2px dashed #2e3348; border-radius: 10px; padding: 20px; text-align: center; color: #9ba1b8; }
+		.drop.dragover { border-color: #6c63ff; }
+		.drop input { display: none; }
+		.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+		.stat { background: #242836; border-radius: 8px; padding: 10px; text-align: center; }
+		.val { font-size: 24px; font-weight: 700; }
+		table { width: 100%; border-collapse: collapse; }
+		th, td { border-bottom: 1px solid #2e3348; padding: 8px; font-size: 13px; text-align: left; }
+		.hidden { display: none; }
+		.ok { color: #22c55e; }
+		.bad { color: #ef4444; }
+		.progress-wrap { width: 100%; height: 8px; background: #242836; border-radius: 5px; overflow: hidden; margin-top: 10px; }
+		.progress-bar { height: 100%; background: #6c63ff; width: 0%; transition: width 0.25s ease; }
+	</style>
+</head>
+<body>
+	<div class="wrap">
+		<div class="card">
+			<h1>Unmapped Product Checker</h1>
+			<p class="muted">findUnmapped tool with server-side MenuApi auth handling</p>
+			<div class="row">
+				<div class="group" style="max-width:280px;">
+					<label>Brand</label>
+					<select id="brand">
+						<option value="B1">B1 - Brand One</option>
+						<option value="B2">B2 - Brand Two</option>
+						<option value="B3">B3 - Brand Three</option>
+					</select>
+				</div>
+			</div>
+
+			<div class="tabs">
+				<button class="tab active" data-tab="manual" onclick="switchTab(this)">Manual Entry</button>
+				<button class="tab" data-tab="csv" onclick="switchTab(this)">CSV Upload</button>
+			</div>
+
+			<div id="tab-manual" class="tab-content active">
+				<div class="group" style="margin-bottom:10px;">
+					<label>Location IDs (comma/space/newline)</label>
+					<input id="manualLocations" placeholder="e.g. 10092, 10093">
+				</div>
+				<div class="group">
+					<label>Product IDs (comma/space/newline)</label>
+					<textarea id="manualProducts" placeholder="e.g. shamrock-farms-lowfat-chocolate-milk-dc0e0574"></textarea>
+				</div>
+			</div>
+
+			<div id="tab-csv" class="tab-content">
+				<div id="csvDrop" class="drop" onclick="document.getElementById('csvFile').click()">
+					<div>Drop CSV here or click to browse</div>
+					<div style="font-size:12px; margin-top:6px;">Column supported: location_id (location-only CSV)</div>
+					<input type="file" id="csvFile" accept=".csv,.txt" onchange="parseCsvFile(event)">
+					<div id="csvPreview" style="margin-top:8px;"></div>
+				</div>
+				<div class="group" style="margin-top:10px;">
+					<label>Product IDs (required for CSV mode)</label>
+					<textarea id="csvProducts"></textarea>
+				</div>
+			</div>
+
+			<div id="loadingCard" class="card hidden">
+				<div class="muted" id="loadingText">Checking... 0%</div>
+				<div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
+			</div>
+
+			<div class="btn-row">
+				<button class="btn-primary" onclick="runCheck()">Check Unmapped</button>
+				<button class="btn-secondary" onclick="clearAll()">Clear</button>
+			</div>
+		</div>
+
+		<div id="summaryCard" class="card hidden">
+			<div class="muted" id="runMeta" style="margin-bottom:8px;"></div>
+			<div class="stats">
+				<div class="stat"><div class="val" id="totalChecks">0</div><div class="muted">Total Checks</div></div>
+				<div class="stat"><div class="val bad" id="unmappedCount">0</div><div class="muted">Unmapped</div></div>
+				<div class="stat"><div class="val" id="locCount">0</div><div class="muted">Locations</div></div>
+			</div>
+		</div>
+
+		<div id="resultsCard" class="card hidden">
+			<div style="overflow:auto; max-height:65vh;">
+				<table>
+					<thead>
+						<tr>
+							<th>#</th>
+							<th>Location</th>
+							<th>Product ID</th>
+							<th>Status</th>
+							<th>Unmapped at Loc</th>
+							<th>API Status</th>
+						</tr>
+					</thead>
+					<tbody id="tbody"></tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		var csvLocations = [];
+		var csvProducts = [];
+		var runStartedAt = null;
+
+		function parseInput(raw) {
+			return (raw || "").split(/[\s,\n]+/).map(function(x){ return x.trim(); }).filter(Boolean);
+		}
+
+		function switchTab(btn) {
+			document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+			document.querySelectorAll('.tab-content').forEach(function(x){ x.classList.remove('active'); });
+			btn.classList.add('active');
+			document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+		}
+
+		function parseCsvFile(ev) {
+			var file = ev.target.files[0];
+			if (!file) return;
+			var reader = new FileReader();
+			reader.onload = function(e) {
+				var lines = (e.target.result || '').trim().split('\n');
+				if (lines.length < 2) {
+					document.getElementById('csvPreview').textContent = 'Need header + one row';
+					return;
+				}
+				var header = lines[0].split(',').map(function(h){ return h.trim().toLowerCase(); });
+				var locIdx = header.findIndex(function(h){ return ['location_id','store_id','loc_id','location','store'].indexOf(h) >= 0; });
+				if (locIdx === -1) {
+					document.getElementById('csvPreview').textContent = 'No location column found';
+					return;
+				}
+
+				csvLocations = [];
+				csvProducts = [];
+				for (var i = 1; i < lines.length; i++) {
+					var cols = lines[i].split(',').map(function(c){ return c.trim(); });
+					if (cols[locIdx]) csvLocations.push(cols[locIdx]);
+				}
+				var uniqL = Array.from(new Set(csvLocations));
+				document.getElementById('csvPreview').textContent = csvLocations.length + ' rows | ' + uniqL.length + ' locations | enter Product IDs below';
+			};
+			reader.readAsText(file);
+		}
+
+		function formatDuration(ms) {
+			var sec = Math.round(ms / 1000);
+			if (sec < 60) return sec + 's';
+			var min = Math.floor(sec / 60);
+			var rem = sec % 60;
+			return min + 'm ' + rem + 's';
+		}
+
+		function runCheck() {
+			var brand = document.getElementById('brand').value;
+			var activeTab = document.querySelector('.tab.active').dataset.tab;
+			var locations = [];
+			var products = [];
+
+			if (activeTab === 'manual') {
+				locations = parseInput(document.getElementById('manualLocations').value);
+				products = parseInput(document.getElementById('manualProducts').value);
+			} else {
+				locations = Array.from(new Set(csvLocations));
+				products = parseInput(document.getElementById('csvProducts').value);
+				if (!products.length) {
+					alert('CSV mode requires Product IDs in the textbox below.');
+					return;
+				}
+			}
+
+			if (!locations.length || !products.length) {
+				alert('Please enter locations and products.');
+				return;
+			}
+
+			runStartedAt = performance.now();
+			document.getElementById('loadingCard').classList.remove('hidden');
+			document.getElementById('loadingText').textContent = 'Submitting request... 0%';
+			document.getElementById('progressBar').style.width = '0%';
+
+			var progress = 0;
+			var target = 90;
+			var timer = setInterval(function() {
+				if (progress < target) {
+					progress += 5;
+					document.getElementById('progressBar').style.width = progress + '%';
+					document.getElementById('loadingText').textContent = 'Checking locations... ' + progress + '%';
+				}
+			}, 200);
+
+			fetch('/api/unmapped/check', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ brand: brand, locations: locations, products: products })
+			})
+			.then(function(r){ return r.json(); })
+			.then(function(data) {
+				clearInterval(timer);
+				if (!data || data.status !== 'success') {
+					throw new Error((data && data.message) ? data.message : 'Request failed');
+				}
+
+				document.getElementById('progressBar').style.width = '100%';
+				document.getElementById('loadingText').textContent = 'Completed 100%';
+				document.getElementById('loadingCard').classList.add('hidden');
+
+				document.getElementById('summaryCard').classList.remove('hidden');
+				document.getElementById('resultsCard').classList.remove('hidden');
+				var elapsed = runStartedAt ? performance.now() - runStartedAt : 0;
+				document.getElementById('runMeta').textContent = 'Completed at ' + new Date().toLocaleString() + ' | Time taken: ' + formatDuration(elapsed);
+				document.getElementById('totalChecks').textContent = data.summary.total_checks;
+				document.getElementById('unmappedCount').textContent = data.summary.unmapped;
+				document.getElementById('locCount').textContent = data.summary.locations_checked;
+
+				document.getElementById('tbody').innerHTML = data.results.map(function(r, i) {
+					var status = r.is_unmapped ? '<span class="bad">UNMAPPED</span>' : '<span class="ok">MAPPED</span>';
+					return '<tr>' +
+						'<td>' + (i + 1) + '</td>' +
+						'<td>' + r.location_id + '</td>' +
+						'<td>' + r.product_id + '</td>' +
+						'<td>' + status + '</td>' +
+						'<td>' + r.unmapped_count + '</td>' +
+						'<td>' + r.api_status + '</td>' +
+					'</tr>';
+				}).join('');
+			})
+			.catch(function(err) {
+				clearInterval(timer);
+				document.getElementById('loadingCard').classList.add('hidden');
+				alert('Error: ' + err.message);
+			});
+		}
+
+		function clearAll() {
+			document.getElementById('manualLocations').value = '';
+			document.getElementById('manualProducts').value = '';
+			document.getElementById('csvProducts').value = '';
+			document.getElementById('csvPreview').textContent = '';
+			document.getElementById('csvFile').value = '';
+			document.getElementById('loadingCard').classList.add('hidden');
+			document.getElementById('runMeta').textContent = '';
+			document.getElementById('summaryCard').classList.add('hidden');
+			document.getElementById('resultsCard').classList.add('hidden');
+			document.getElementById('tbody').innerHTML = '';
+			csvLocations = [];
+			csvProducts = [];
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────
+#  Brand Three — Auth: Sign In & Sign Out
+#
+#  Verifies user can sign in and sign out successfully.
+#    Launch → Sign In → Verify Home → Sign Out → Verify Greeting → Kill App
+#
+#  Run:  maestro test flows/brand3/auth/sign-in-out.yaml
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+jsEngine: graaljs
+androidWebViewHierarchy: devtools
+tags:
+  - e2e
+  - brand3
+  - auth
+  - critical-path
+
+env:
+  BUNDLE_ID: com.example.brand3.uat
+  AUTH_EMAIL: "user@example.com"
+  AUTH_PASS: "replace_me"
+  AUTH_PHONE: "5555550100"
+  OTP_BRAND_CODE: "B3"
+  OTP_API_PREFIX: "b3-api"
+
+---
+
+# ══════════════════════════════════════════════════════════════
+# STEP 1: Launch Application
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+# ══════════════════════════════════════════════════════════════
+# STEP 2: Sign In
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/sign-in.yaml
+
+# ══════════════════════════════════════════════════════════════
+# STEP 3: Verify Signed In — wait for authenticated home screen
+# ══════════════════════════════════════════════════════════════
+- extendedWaitUntil:
+    visible: "Bag"
+    timeout: 20000
+
+- takeScreenshot: screenshots/brand3_signin_verified_${output.RUN_ID}
+- evalScript: ${console.log('PASSED - Brand Three sign in verified')}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 4: Sign Out
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/sign-out.yaml
+
+# ══════════════════════════════════════════════════════════════
+# STEP 5: Verify Signed Out — greeting screen visible
+# ══════════════════════════════════════════════════════════════
+- extendedWaitUntil:
+    visible:
+      id: Greetings.pressables.signInLink
+    timeout: 20000
+
+- takeScreenshot: screenshots/brand3_signout_verified_${output.RUN_ID}
+- evalScript: ${console.log('PASSED - Brand Three sign in and sign out complete')}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 6: Kill App (clean exit)
+# ══════════════════════════════════════════════════════════════
+- stopApp

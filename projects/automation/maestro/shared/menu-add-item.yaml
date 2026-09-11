@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Browse Menu & Add Item to Bag
+#
+#  After location selection the app lands on the menu screen.
+#  Selects a category, then taps "Add to Bag" on the product card.
+#
+#  Expects env:
+#    BUNDLE_ID         — app bundle/package id
+#    MENU_CATEGORY_ID  — category testID segment (e.g. "Breakfast")
+#    PRODUCT_CATEGORY  — subcategory segment (e.g. "NationalBreakfastEntrees")
+#    PRODUCT_ID        — product testID segment (e.g. "BaconBreakfastBurrito")
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+
+---
+
+# ── User is on the menu after selecting location ──
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ── Scroll to & tap the target category ──
+- scrollUntilVisible:
+    element:
+      id: "Menu.Allcategories.Categorycard.${MENU_CATEGORY_ID}-Title"
+    direction: DOWN
+    timeout: 30000
+    speed: 40
+
+- tapOn:
+    id: "Menu.Allcategories.Categorycard.${MENU_CATEGORY_ID}-Title"
+
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# ── Scroll to & tap "Add to Bag" on the product card ──
+- scrollUntilVisible:
+    element:
+      id: "Productlistcard.Category.${PRODUCT_CATEGORY}.Product.${PRODUCT_ID}.ProductListCard.pressables.addToBag"
+    direction: DOWN
+    timeout: 30000
+    speed: 40
+
+- tapOn:
+    id: "Productlistcard.Category.${PRODUCT_CATEGORY}.Product.${PRODUCT_ID}.ProductListCard.pressables.addToBag"
+
+- waitForAnimationToEnd:
+    timeout: 5000
+
+- takeScreenshot: screenshots/item_added_to_bag_${output.RUN_ID}

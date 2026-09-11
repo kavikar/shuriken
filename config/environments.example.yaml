@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────────
+#  Environment Configuration (EXAMPLE / TEMPLATE)
+#
+#  Declares the environments targeted by automation and tools.
+#  Copy to environments.yaml and replace base URLs with your own.
+#  Never commit real internal hostnames or tokens.
+# ─────────────────────────────────────────────────────────────────
+
+local:
+  baseUrl: "https://local.example"
+  description: "Local development"
+
+test:
+  baseUrl: "https://test.example"
+  description: "Test / QA"
+
+staging:
+  baseUrl: "https://staging.example"
+  description: "Pre-production / UAT"
+
+production:
+  baseUrl: "https://production.example"
+  description: "Production"
+
+defaults:
+  env: staging

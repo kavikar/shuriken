@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────────
+#  Brand Three — Account: View Profile
+#
+#  Verifies a signed-in user can view their profile screen.
+#
+#  Run:  maestro test flows/brand3/account/view-profile.yaml
+#        -e AUTH_EMAIL=user@example.com -e AUTH_PASS=secret
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+tags:
+  - account
+  - brand3
+  - auth
+
+env:
+  BUNDLE_ID: com.example.brand3.uat
+  AUTH_EMAIL: ""
+  AUTH_PASS: ""
+
+---
+
+# Launch & sign in
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+- runFlow: ../../../shared/sign-in.yaml
+
+# Navigate to account / profile
+- runFlow:
+    when:
+      visible:
+        id: "Apptopnavigation.sections.headerRight"
+    commands:
+      - tapOn:
+          id: "Apptopnavigation.sections.headerRight"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+- runFlow:
+    when:
+      visible: "Account"
+    commands:
+      - tapOn: "Account"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+- runFlow:
+    when:
+      visible: "Profile"
+    commands:
+      - tapOn: "Profile"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+- takeScreenshot: screenshots/brand3_profile_${output.RUN_ID}

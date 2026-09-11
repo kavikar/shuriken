@@ -1,0 +1,13 @@
+# Maestro global configuration
+# https://maestro.mobile.dev/reference/configuration
+
+# Default flow execution settings
+flows:
+  # Screenshot directory
+  screenshotDir: ./screenshots
+
+  # Default timeout for assertions (ms)
+  defaultTimeout: 10000
+
+  # Retry flaky steps automatically
+  retryCount: 1

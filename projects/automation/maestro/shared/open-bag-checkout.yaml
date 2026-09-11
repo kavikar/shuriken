@@ -1,0 +1,87 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Open Bag & Tap Checkout
+#
+#  Opens the shopping bag via tab bar, then taps Checkout FAB.
+#
+#  KNOWN ISSUE: The Bag tab icon and the Checkout FAB button sit
+#  at the exact same screen position. When Maestro taps the Bag
+#  tab, the bag opens and the Checkout FAB appears underneath the
+#  finger — so the single tap actually triggers BOTH the tab
+#  switch AND the Checkout button, landing us directly on the
+#  checkout screen. This flow handles that by checking at every
+#  step whether we've already reached checkout.
+#
+#  Expects env:
+#    BUNDLE_ID — app bundle/package id
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+
+---
+
+# ── Navigate to Bag via tab bar ──
+- extendedWaitUntil:
+    visible:
+      id: "TabBar.Bag.label"
+    timeout: 10000
+
+- tapOn:
+    id: "TabBar.Bag.label"
+
+- waitForAnimationToEnd:
+    timeout: 10000
+
+- takeScreenshot: screenshots/bag_opened_${output.RUN_ID}
+
+# ── After tapping Bag tab, we might ALREADY be on checkout ──
+# Because the Bag tab and Checkout FAB overlap, the tap may have
+# triggered both — opening the bag AND tapping checkout in one go.
+# Check for ANY checkout screen indicator before looking for the FAB.
+
+# Checkout indicator 1: Stall pickup option
+- runFlow:
+    when:
+      visible:
+        id: "Bag.Checkout.PickupLocation.Stall"
+    commands:
+      - evalScript: ${console.log('Already on checkout (Stall visible) - Bag/FAB overlap triggered checkout')}
+
+# Checkout indicator 2: "Place Order" button
+- runFlow:
+    when:
+      visible: "Place Order"
+    commands:
+      - evalScript: ${console.log('Already on checkout (Place Order visible) - Bag/FAB overlap triggered checkout')}
+
+# ── If NOT on checkout yet, tap the Checkout FAB ──
+# Guard: only look for the FAB if we are NOT already on checkout
+- runFlow:
+    when:
+      notVisible: "Place Order"
+    commands:
+      - runFlow:
+          when:
+            notVisible:
+              id: "Bag.Checkout.PickupLocation.Stall"
+          commands:
+            # Try FAB button first
+            - runFlow:
+                when:
+                  visible:
+                    id: "Bag.FAB.Checkout"
+                commands:
+                  - tapOn:
+                      id: "Bag.FAB.Checkout"
+                  - waitForAnimationToEnd:
+                      timeout: 5000
+
+            # Fallback: text-based "Checkout"
+            - runFlow:
+                when:
+                  visible: "Checkout"
+                commands:
+                  - tapOn: "Checkout"
+                  - waitForAnimationToEnd:
+                      timeout: 5000
+
+- takeScreenshot: screenshots/checkout_started_${output.RUN_ID}

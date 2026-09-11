@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu Delta Analyzer – Example Corp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --b2: #FFB300; --b1: #E31837; --b3: #0055A5;
+      --dark: #0F172A; --surface: #1E293B; --card: #263548;
+    }
+    body { background: var(--dark); color: #E2E8F0; font-family: 'Inter', system-ui, sans-serif; }
+
+    /* ---- Brand buttons ---- */
+    .brand-btn { transition: all .2s ease; border: 2px solid transparent; }
+    .brand-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+    .brand-btn.selected { border-color: white; transform: translateY(-3px);
+      box-shadow: 0 0 0 3px rgba(255,255,255,.25); }
+
+    /* ---- Status pills ---- */
+    .pill-ok       { @apply bg-green-700 text-green-100; }
+    .pill-warn     { @apply bg-yellow-600 text-yellow-100; }
+    .pill-err      { @apply bg-red-700 text-red-100; }
+    .pill-new      { @apply bg-orange-600 text-orange-100; }
+    .pill-info     { @apply bg-blue-700 text-blue-100; }
+
+    /* ---- Table ---- */
+    .tbl th  { background: #1F3864; color: white; font-size:.75rem; text-transform:uppercase; letter-spacing:.05em;
+               position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 0 #334155; }
+    .tbl td  { font-size: .8rem; border-bottom: 1px solid #334155; }
+    .tbl tr:hover td { background: rgba(255,255,255,.04); }
+
+    /* ---- Misc ---- */
+    .glass { background: rgba(255,255,255,.05); backdrop-filter: blur(8px); }
+    .check-card { border-left: 4px solid; }
+    .check-card.ok   { border-color: #16A34A; }
+    .check-card.fail { border-color: #DC2626; }
+    .check-card.warn { border-color: #D97706; }
+
+    .tab-btn { border-bottom: 3px solid transparent; transition: all .15s; }
+    .tab-btn.active { border-color: white; color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; }
+
+    /* Upload zone */
+    .upload-zone { border: 2px dashed #475569; transition: all .2s; }
+    .upload-zone:hover, .upload-zone.drag { border-color: #7C3AED; background: rgba(124,58,237,.08); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1E293B; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- ════════════════════════════════════════════════════ HEADER ════ -->
+<header class="sticky top-0 z-50 border-b border-slate-700" style="background:var(--surface);">
+  <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center text-xl"
+           style="background:linear-gradient(135deg,#7C3AED,#2563EB);">📊</div>
+      <div>
+        <h1 class="font-bold text-white text-base leading-tight">Menu Delta Analyzer</h1>
+        <p class="text-slate-400 text-xs">UAT ↔ PROD Comparison · Example Corp</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 text-xs text-slate-400">
+      <button id="history-btn" onclick="toggleHistory()"
+              class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white transition-all"
+              title="View last 5 analyses">
+        <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+        <span>History</span>
+        <span id="history-badge" class="inline-flex items-center justify-center w-4 h-4 rounded-full text-xs font-bold bg-indigo-600 text-white"></span>
+      </button>
+      <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-dot text-green-400"></i> B2 · B1 · B3</span>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════ MAIN ════ -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+
+  <!-- ── SERVER NOT RUNNING BANNER ────────────────────────────── -->
+  <div id="server-banner" class="hidden rounded-2xl p-5 mb-6 bg-yellow-900/50 border border-yellow-600">
+    <div class="flex items-start gap-3">
+      <i class="fa-solid fa-triangle-exclamation text-yellow-400 text-xl mt-0.5"></i>
+      <div>
+        <h3 class="font-bold text-yellow-300 mb-1">Flask Server Not Running</h3>
+        <p class="text-yellow-200 text-sm">
+          This page must be served by the Flask backend — do not open it directly as a file.<br>
+          Run <code class="bg-yellow-800/60 px-1 rounded">start.bat</code> (Windows) or
+          <code class="bg-yellow-800/60 px-1 rounded">python app.py</code> in the
+          <code class="bg-yellow-800/60 px-1 rounded">Menu_Delta_Analyzer</code> folder,
+          then navigate to <strong>http://localhost:5000</strong>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY PANEL ───────────────────────────────────────── -->
+  <div id="history-panel" class="hidden rounded-2xl p-5 mb-6" style="background:var(--surface);">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+        <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Recent Analyses
+        <span class="text-xs text-slate-500 font-normal">(5 per brand · click a card to restore)</span>
+      </h2>
+      <div class="flex items-center gap-2">
+        <button onclick="clearHistory()" class="text-xs text-slate-500 hover:text-red-400 transition-colors flex items-center gap-1">
+          <i class="fa-solid fa-trash-can text-xs"></i> Clear
+        </button>
+        <button onclick="toggleHistory()" class="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+    </div>
+    <div id="history-entries" class="flex flex-col gap-5"></div>
+  </div>
+
+  <!-- ── CONFIG PANEL ─────────────────────────────────────────── -->
+  <section id="config-panel" class="rounded-2xl p-6 mb-6" style="background:var(--surface);">
+
+    <!-- Brand Selector -->
+    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">
+      <i class="fa-solid fa-store mr-2"></i>Select Brand
+    </h2>
+    <div id="brand-buttons" class="grid grid-cols-3 gap-4 mb-6">
+
+      <button class="brand-btn rounded-xl p-4 text-center cursor-pointer"
+              style="background:#FFB300;" data-brand="B2" onclick="selectBrand('B2')">
+        <div class="text-3xl mb-1">🦬</div>
+        <div class="font-bold text-black text-sm">Brand Two</div>
+        <div class="text-xs text-black/70 mt-1">B2</div>
+      </button>
+
+      <button class="brand-btn rounded-xl p-4 text-center cursor-pointer"
+              style="background:#E31837;" data-brand="B1" onclick="selectBrand('B1')">
+        <div class="text-3xl mb-1">🥩</div>
+        <div class="font-bold text-white text-sm">Brand One</div>
+        <div class="text-xs text-white/70 mt-1">B1</div>
+      </button>
+
+      <button class="brand-btn rounded-xl p-4 text-center cursor-pointer"
+              style="background:#0055A5;" data-brand="B3" onclick="selectBrand('B3')">
+        <div class="text-3xl mb-1">🎵</div>
+        <div class="font-bold text-white text-sm">Brand Three</div>
+        <div class="text-xs text-white/70 mt-1">B3</div>
+      </button>
+
+    </div>
+
+    <!-- Input Mode Toggle -->
+    <div class="flex gap-2 mb-5">
+      <button onclick="setMode('live')" id="mode-live"
+              class="flex-1 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white">
+        <i class="fa-solid fa-wifi mr-1"></i> Live API
+      </button>
+      <button onclick="setMode('upload')" id="mode-upload"
+              class="flex-1 py-2 rounded-lg text-sm font-medium transition-all bg-slate-700 text-slate-300">
+        <i class="fa-solid fa-upload mr-1"></i> Upload JSON Files
+      </button>
+    </div>
+
+    <!-- ── LIVE MODE ── -->
+    <div id="live-inputs">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1 font-medium">
+            <i class="fa-solid fa-flask mr-1 text-yellow-400"></i>UAT Store ID
+          </label>
+          <input id="uat-store" type="text" placeholder="e.g. 4 (auto-filled)"
+                 class="w-full rounded-lg px-3 py-2 text-sm bg-slate-800 border border-slate-600
+                        text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                 oninput="autoFillProd()" />
+          <p id="store-map-hint" class="text-xs text-slate-500 mt-1 hidden">
+            <i class="fa-solid fa-magic-wand-sparkles mr-1 text-indigo-400"></i>
+            <span id="store-map-text"></span>
+          </p>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1 font-medium">
+            <i class="fa-solid fa-server mr-1 text-red-400"></i>PROD Store ID
+          </label>
+          <input id="prod-store" type="text" placeholder="e.g. 114"
+                 class="w-full rounded-lg px-3 py-2 text-sm bg-slate-800 border border-slate-600
+                        text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                 oninput="autoFillUat()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── UPLOAD MODE ── -->
+    <div id="upload-inputs" class="hidden">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs text-slate-400 mb-2 font-medium">
+            <i class="fa-solid fa-flask mr-1 text-yellow-400"></i>UAT Menu JSON
+          </label>
+          <div class="upload-zone rounded-xl p-6 text-center cursor-pointer"
+               onclick="document.getElementById('uat-file').click()"
+               id="uat-drop">
+            <i class="fa-solid fa-file-code text-3xl text-slate-500 mb-2"></i>
+            <p class="text-sm text-slate-400">Click or drag UAT JSON</p>
+            <p id="uat-file-name" class="text-xs text-yellow-400 mt-1 hidden"></p>
+          </div>
+          <input type="file" id="uat-file" accept=".json" class="hidden"
+                 onchange="handleFileSelect('uat', this)" />
+          <div class="grid grid-cols-2 gap-2 mt-2">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">UAT Store Label</label>
+              <input id="uat-store-upload" type="text" placeholder="e.g. 4"
+                     class="w-full rounded px-2 py-1.5 text-xs bg-slate-800 border border-slate-600 text-white focus:outline-none focus:border-indigo-500"/>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-2 font-medium">
+            <i class="fa-solid fa-server mr-1 text-red-400"></i>PROD Menu JSON
+          </label>
+          <div class="upload-zone rounded-xl p-6 text-center cursor-pointer"
+               onclick="document.getElementById('prod-file').click()"
+               ondragover="e=>e.preventDefault()" id="prod-drop">
+            <i class="fa-solid fa-file-code text-3xl text-slate-500 mb-2"></i>
+            <p class="text-sm text-slate-400">Click or drag PROD JSON</p>
+            <p id="prod-file-name" class="text-xs text-indigo-400 mt-1 hidden"></p>
+          </div>
+          <input type="file" id="prod-file" accept=".json" class="hidden"
+                 onchange="handleFileSelect('prod', this)" />
+          <div class="grid grid-cols-2 gap-2 mt-2">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">PROD Store Label</label>
+              <input id="prod-store-upload" type="text" placeholder="e.g. 114"
+                     class="w-full rounded px-2 py-1.5 text-xs bg-slate-800 border border-slate-600 text-white focus:outline-none focus:border-indigo-500"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RUN BUTTON ── -->
+    <div class="mt-6 flex flex-wrap items-center gap-4">
+      <!-- Brand validation hint (shown when Run clicked without brand) -->
+      <p id="brand-hint" class="hidden text-xs text-red-400 mb-2 w-full"
+         style="flex-basis:100%; order:-1;">
+        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Please select a brand (B2 / B1 / B3) before running.
+      </p>
+      <button id="run-btn" onclick="runAnalysis()"
+              class="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all
+                     bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500
+                     flex items-center justify-center gap-2">
+        <i class="fa-solid fa-magnifying-glass-chart"></i>
+        <span id="run-btn-text">Run Analysis</span>
+      </button>
+      <button onclick="resetAll()"
+              class="px-4 py-3 rounded-xl text-sm text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 transition-all">
+        <i class="fa-solid fa-rotate-left"></i>
+      </button>
+    </div>
+
+  </section>
+
+  <!-- ── PROGRESS ─────────────────────────────────────────────── -->
+  <div id="progress-panel" class="hidden rounded-2xl p-6 mb-6" style="background:var(--surface);">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent spin"></div>
+      <span class="text-white font-medium" id="progress-text">Fetching menus…</span>
+    </div>
+    <div class="space-y-2" id="progress-steps">
+      <div class="step-item flex items-center gap-2 text-sm text-slate-400" data-step="fetch">
+        <i class="fa-regular fa-circle w-4"></i> Fetching PROD & UAT menus
+      </div>
+      <div class="step-item flex items-center gap-2 text-sm text-slate-400" data-step="parse">
+        <i class="fa-regular fa-circle w-4"></i> Parsing menu structures
+      </div>
+      <div class="step-item flex items-center gap-2 text-sm text-slate-400" data-step="compare">
+        <i class="fa-regular fa-circle w-4"></i> Running 8 comparison checks
+      </div>
+      <div class="step-item flex items-center gap-2 text-sm text-slate-400" data-step="report">
+        <i class="fa-regular fa-circle w-4"></i> Generating Excel report
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ERROR ────────────────────────────────────────────────── -->
+  <div id="error-panel" class="hidden rounded-2xl p-5 mb-6 bg-red-900/40 border border-red-700">
+    <div class="flex items-start gap-3">
+      <i class="fa-solid fa-circle-exclamation text-red-400 text-xl mt-0.5"></i>
+      <div>
+        <h3 class="font-bold text-red-300 mb-1">Analysis Failed</h3>
+        <p id="error-msg" class="text-sm text-red-200 font-mono whitespace-pre-wrap"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESULTS ──────────────────────────────────────────────── -->
+  <div id="results-panel" class="hidden">
+
+    <!-- Meta banner -->
+    <div id="meta-banner" class="rounded-2xl p-5 mb-6 flex flex-wrap items-center gap-4"
+         style="background:var(--surface);">
+      <div id="brand-badge" class="rounded-xl px-4 py-2 font-bold text-sm text-black"></div>
+      <div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div class="rounded-lg p-2.5" style="background:var(--card);">
+          <div class="text-slate-400">PROD Store</div>
+          <div class="font-bold text-white" id="r-prod-store">—</div>
+        </div>
+        <div class="rounded-lg p-2.5" style="background:var(--card);">
+          <div class="text-slate-400">UAT Store</div>
+          <div class="font-bold text-white" id="r-uat-store">—</div>
+        </div>
+        <div class="rounded-lg p-2.5" style="background:var(--card);">
+          <div class="text-slate-400">PROD Products</div>
+          <div class="font-bold text-white" id="r-prod-products">—</div>
+        </div>
+        <div class="rounded-lg p-2.5" style="background:var(--card);">
+          <div class="text-slate-400">UAT Products</div>
+          <div class="font-bold text-white" id="r-uat-products">—</div>
+        </div>
+      </div>
+      <a id="download-btn" href="#" target="_blank"
+         class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm text-white
+                bg-gradient-to-r from-green-700 to-emerald-600 hover:from-green-600 hover:to-emerald-500 transition-all">
+        <i class="fa-solid fa-file-excel"></i> Download Excel
+      </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="stat-card rounded-xl p-4 text-center cursor-pointer transition-all hover:scale-105 hover:ring-2 hover:ring-amber-400"
+           style="background:var(--surface);" onclick="jumpToFirstIssue()">
+        <div class="text-3xl font-black" id="s-total" style="color:#F59E0B">—</div>
+        <div class="text-xs text-slate-400 mt-1">Total Issues</div>
+        <div class="text-xs text-slate-600 mt-0.5">click to browse</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center cursor-pointer transition-all hover:scale-105 hover:ring-2 hover:ring-red-400"
+           style="background:var(--surface);" onclick="jumpToTab('non_virtual', 'CRITICAL')">
+        <div class="text-3xl font-black text-red-400" id="s-critical">—</div>
+        <div class="text-xs text-slate-400 mt-1">Critical</div>
+        <div class="text-xs text-slate-600 mt-0.5">non-virtual attrs</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center cursor-pointer transition-all hover:scale-105 hover:ring-2 hover:ring-yellow-400"
+           style="background:var(--surface);" onclick="jumpToTab('non_virtual', 'WARNING')">
+        <div class="text-3xl font-black text-yellow-400" id="s-warnings">—</div>
+        <div class="text-xs text-slate-400 mt-1">Warnings</div>
+        <div class="text-xs text-slate-600 mt-0.5">non-virtual attrs</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center cursor-pointer transition-all hover:scale-105 hover:ring-2 hover:ring-orange-400"
+           style="background:var(--surface);" onclick="jumpToTab('delta_products', 'NEW IN UAT')">
+        <div class="text-3xl font-black text-orange-400" id="s-new">—</div>
+        <div class="text-xs text-slate-400 mt-1">New in UAT</div>
+        <div class="text-xs text-slate-600 mt-0.5">delta products</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center cursor-pointer transition-all hover:scale-105 hover:ring-2 hover:ring-red-500"
+           style="background:var(--surface);" onclick="jumpToTab('delta_products', 'REMOVED FROM UAT')">
+        <div class="text-3xl font-black text-red-500" id="s-removed">—</div>
+        <div class="text-xs text-slate-400 mt-1">Removed</div>
+        <div class="text-xs text-slate-600 mt-0.5">delta products</div>
+      </div>
+    </div>
+
+    <!-- Check Cards -->
+    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-3">
+      <i class="fa-solid fa-list-check mr-2"></i>Check Results
+    </h2>
+    <div id="check-cards" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"></div>
+
+    <!-- Detailed Results Tabs -->
+    <div class="rounded-2xl overflow-hidden" style="background:var(--surface);">
+      <div class="flex overflow-x-auto border-b border-slate-700 px-4 gap-1" id="result-tabs"></div>
+      <div id="result-tab-contents" class="p-4"></div>
+    </div>
+
+  </div><!-- /results-panel -->
+
+</main>
+
+<!-- ════════════════════════════════════════════════════ SCRIPT ════ -->
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let STATE = {
+  brand: null,
+  mode: 'live',
+  brandsConfig: {},
+  prodFile: null,
+  uatFile: null,
+  results: null,
+};
+
+// ── Init ───────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  // Detect file:// or server-not-running scenario
+  if (location.protocol === 'file:') {
+    document.getElementById('server-banner').classList.remove('hidden');
+    return;
+  }
+  try {
+    const res = await fetch('/api/brands');
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+    STATE.brandsConfig = await res.json();
+  } catch(e) {
+    console.warn('Could not load brands config:', e);
+    document.getElementById('server-banner').classList.remove('hidden');
+  }
+  setupDragDrop();
+  // Restore history badge from server
+  loadHistoryCount();
+});
+
+// ── Brand Selection ────────────────────────────────────────────────────────
+function selectBrand(brand) {
+  STATE.brand = brand;
+  document.querySelectorAll('.brand-btn').forEach(btn => btn.classList.remove('selected'));
+  document.querySelector(`[data-brand="${brand}"]`).classList.add('selected');
+  document.getElementById('brand-hint').classList.add('hidden');
+  // Clear both fields on brand switch
+  document.getElementById('uat-store').value = '';
+  document.getElementById('prod-store').value = '';
+  document.getElementById('store-map-hint').classList.add('hidden');
+  // Pre-fill first store_map entry if there's exactly one PROD->UAT pair
+  const cfg = STATE.brandsConfig[brand];
+  if (cfg) {
+    const entries = Object.entries(cfg.store_map || {});
+    if (entries.length === 1) {
+      document.getElementById('prod-store').value = entries[0][0];
+      document.getElementById('uat-store').value  = entries[0][1];
+      const hint = document.getElementById('store-map-hint');
+      document.getElementById('store-map-text').textContent =
+        `Auto-mapped PROD ${entries[0][0]} → UAT ${entries[0][1]}`;
+      hint.classList.remove('hidden');
+    }
+  }
+  checkReady();
+  // Clear prev results
+  document.getElementById('results-panel').classList.add('hidden');
+  document.getElementById('error-panel').classList.add('hidden');
+}
+
+// UAT typed → find matching PROD (reverse lookup)
+function autoFillProd() {
+  const brand = STATE.brand;
+  if (!brand) return;
+  const uatId = document.getElementById('uat-store').value.trim();
+  const cfg = STATE.brandsConfig[brand];
+  if (!cfg) return;
+  const hint = document.getElementById('store-map-hint');
+  const hintText = document.getElementById('store-map-text');
+  // Build reverse map: uatId -> [prodId, ...]
+  const reverseMap = {};
+  for (const [p, u] of Object.entries(cfg.store_map || {})) {
+    if (!reverseMap[u]) reverseMap[u] = [];
+    reverseMap[u].push(p);
+  }
+  const matches = reverseMap[uatId] || [];
+  if (matches.length === 1) {
+    document.getElementById('prod-store').value = matches[0];
+    hintText.textContent = `Auto-mapped UAT ${uatId} → PROD ${matches[0]}`;
+    hint.classList.remove('hidden');
+  } else if (matches.length > 1) {
+    // Multiple PROD stores map to this UAT — show options but don't auto-fill
+    hintText.textContent = `UAT ${uatId} maps from PROD: ${matches.join(', ')}`;
+    hint.classList.remove('hidden');
+  } else {
+    hint.classList.add('hidden');
+  }
+  checkReady();
+}
+
+// PROD typed → find matching UAT (forward lookup)
+function autoFillUat() {
+  const brand = STATE.brand;
+  if (!brand) return;
+  const prodId = document.getElementById('prod-store').value.trim();
+  const cfg = STATE.brandsConfig[brand];
+  if (!cfg) return;
+  const mapped = (cfg.store_map || {})[prodId];
+  const hint = document.getElementById('store-map-hint');
+  const hintText = document.getElementById('store-map-text');
+  if (mapped) {
+    document.getElementById('uat-store').value = mapped;
+    hintText.textContent = `Auto-mapped PROD ${prodId} → UAT ${mapped}`;
+    hint.classList.remove('hidden');
+  } else {
+    hint.classList.add('hidden');
+  }
+  checkReady();
+}
+
+// ── Mode Toggle ────────────────────────────────────────────────────────────
+function setMode(mode) {
+  STATE.mode = mode;
+  document.getElementById('live-inputs').classList.toggle('hidden', mode !== 'live');
+  document.getElementById('upload-inputs').classList.toggle('hidden', mode !== 'upload');
+  document.getElementById('mode-live').className  = `flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mode==='live' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300'}`;
+  document.getElementById('mode-upload').className= `flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mode==='upload' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300'}`;
+  checkReady();
+}
+
+function checkReady() {
+  // Button is always enabled; all validation happens inside runAnalysis()
+  document.getElementById('brand-hint').classList.add('hidden');
+}
+
+// ── File Upload ────────────────────────────────────────────────────────────
+function handleFileSelect(type, input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (type === 'prod') {
+    STATE.prodFile = file;
+    document.getElementById('prod-file-name').textContent = `✓ ${file.name}`;
+    document.getElementById('prod-file-name').classList.remove('hidden');
+    document.getElementById('prod-drop').classList.add('border-indigo-500');
+  } else {
+    STATE.uatFile = file;
+    document.getElementById('uat-file-name').textContent = `✓ ${file.name}`;
+    document.getElementById('uat-file-name').classList.remove('hidden');
+    document.getElementById('uat-drop').classList.add('border-yellow-500');
+  }
+  checkReady();
+}
+
+function setupDragDrop() {
+  ['prod', 'uat'].forEach(type => {
+    const zone = document.getElementById(`${type}-drop`);
+    if (!zone) return;
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        const fakeInput = { files: [file] };
+        handleFileSelect(type, fakeInput);
+        document.getElementById(`${type}-file`).files = e.dataTransfer.files;
+      }
+    });
+  });
+}
+
+// ── Analysis ───────────────────────────────────────────────────────────────
+async function runAnalysis() {
+  const hint = document.getElementById('brand-hint');
+
+  // Validate brand
+  if (!STATE.brand) {
+    hint.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i>Please select a brand (B2 / B1 / B3) before running.';
+    hint.classList.remove('hidden');
+    document.getElementById('config-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  // Validate inputs
+  if (STATE.mode === 'live') {
+    const prodStore = document.getElementById('prod-store').value.trim();
+    if (!prodStore) {
+      hint.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i>Please enter a PROD Store ID.';
+      hint.classList.remove('hidden');
+      document.getElementById('prod-store').focus();
+      return;
+    }
+  } else {
+    if (!STATE.prodFile || !STATE.uatFile) {
+      hint.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i>Please upload both PROD and UAT JSON files.';
+      hint.classList.remove('hidden');
+      return;
+    }
+  }
+
+  hint.classList.add('hidden');
+  document.getElementById('results-panel').classList.add('hidden');
+  document.getElementById('error-panel').classList.add('hidden');
+  showProgress(true);
+
+  try {
+    let data;
+    setProgressStep('fetch', 'active');
+
+    if (STATE.mode === 'live') {
+      const body = {
+        brand:          STATE.brand,
+        prod_store_id:  document.getElementById('prod-store').value.trim(),
+        uat_store_id:   document.getElementById('uat-store').value.trim(),
+      };
+      setProgressStep('parse', 'active');
+      setProgressStep('compare', 'active');
+      setProgressStep('report', 'active');
+
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+      });
+      data = await res.json();
+    } else {
+      const fd = new FormData();
+      fd.append('brand', STATE.brand);
+      fd.append('prod_store_id', document.getElementById('prod-store-upload').value.trim() || 'PROD');
+      fd.append('uat_store_id',  document.getElementById('uat-store-upload').value.trim()  || 'UAT');
+      fd.append('prod_file', STATE.prodFile);
+      fd.append('uat_file',  STATE.uatFile);
+
+      setProgressStep('parse', 'active');
+      setProgressStep('compare', 'active');
+      setProgressStep('report', 'active');
+
+      const res = await fetch('/api/upload_analyze', { method: 'POST', body: fd });
+      data = await res.json();
+    }
+
+    showProgress(false);
+
+    if (data.status === 'error') {
+      showError(data.message + (data.traceback ? '\n\n' + data.traceback : ''));
+      return;
+    }
+
+    STATE.results = data;
+    renderResults(data);
+
+  } catch(err) {
+    showProgress(false);
+    showError(err.message || String(err));
+  }
+}
+
+function showProgress(show) {
+  document.getElementById('progress-panel').classList.toggle('hidden', !show);
+  const btn = document.getElementById('run-btn');
+  btn.style.opacity = show ? '0.5' : '1';
+  btn.style.pointerEvents = show ? 'none' : '';
+  document.getElementById('run-btn-text').textContent = show ? 'Analyzing…' : 'Run Analysis';
+  if (show) {
+    document.querySelectorAll('.step-item').forEach(el => {
+      el.querySelector('i').className = 'fa-regular fa-circle w-4';
+      el.classList.remove('text-green-400', 'text-white');
+      el.classList.add('text-slate-400');
+    });
+  }
+}
+
+function setProgressStep(step, status) {
+  const el = document.querySelector(`[data-step="${step}"]`);
+  if (!el) return;
+  if (status === 'active') {
+    el.querySelector('i').className = 'fa-solid fa-circle-dot w-4 text-indigo-400 spin';
+    el.classList.remove('text-slate-400');
+    el.classList.add('text-white');
+  } else if (status === 'done') {
+    el.querySelector('i').className = 'fa-solid fa-circle-check w-4 text-green-400';
+    el.classList.remove('text-white');
+    el.classList.add('text-green-400');
+  }
+}
+
+function showError(msg) {
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('error-panel').classList.remove('hidden');
+}
+
+// ── Render Results ─────────────────────────────────────────────────────────
+const BRAND_COLORS = { B2: '#FFB300', B1: '#E31837', B3: '#0055A5' };
+const BRAND_TEXT   = { B2: 'text-black', B1: 'text-white', B3: 'text-white' };
+
+const CHECK_META = {
+  product_count:     { icon: 'fa-list-ol',        label: '1. Product Counts by Category'    },
+  ingredients:       { icon: 'fa-leaf',            label: '2. Ingredient Changes'            },
+  recipe_flags:      { icon: 'fa-utensils',        label: '3. isRecipe/Default Flag Mismatches' },
+  modifier_minmax:   { icon: 'fa-sliders',         label: '4. Modifier Min/Max'              },
+  display_names:     { icon: 'fa-font',            label: '5. Display Name & Description'    },
+  modifier_ordering: { icon: 'fa-arrow-down-wide-short', label: '6. Ordering / Sequence'        },
+  delta_products:    { icon: 'fa-code-compare',    label: '7. Delta Products'                },
+  non_virtual:       { icon: 'fa-tags',            label: '8. Non-Virtual Attributes'        },
+};
+
+function statusClass(issues) {
+  if (issues === 0) return 'ok';
+  if (issues <= 5)  return 'warn';
+  return 'fail';
+}
+
+function renderResults(data) {
+  const { meta, summary, checks } = data;
+  const brand = meta.brand;
+
+  // Meta banner
+  document.getElementById('meta-banner').style.background = 'var(--surface)';
+  const badge = document.getElementById('brand-badge');
+  badge.textContent = brand;
+  badge.style.background = BRAND_COLORS[brand] || '#6366F1';
+  badge.className = `rounded-xl px-4 py-2 font-bold text-sm ${BRAND_TEXT[brand] || 'text-white'}`;
+
+  document.getElementById('r-prod-store').textContent = meta.prod_store;
+  document.getElementById('r-uat-store').textContent  = meta.uat_store;
+  document.getElementById('r-prod-products').textContent = meta.prod_product_count ?? '—';
+  document.getElementById('r-uat-products').textContent  = meta.uat_product_count  ?? '—';
+
+  document.getElementById('download-btn').href = `/api/download/${data.report_id}`;
+
+  // Summary numbers
+  document.getElementById('s-total').textContent    = summary.total_issues;
+  document.getElementById('s-critical').textContent = summary.critical;
+  document.getElementById('s-warnings').textContent = summary.warnings;
+  document.getElementById('s-new').textContent      = summary.new_products;
+  document.getElementById('s-removed').textContent  = summary.removed_products;
+
+  // Check cards
+  const cards = document.getElementById('check-cards');
+  cards.innerHTML = '';
+  for (const [ck, ch] of Object.entries(checks)) {
+    const m = CHECK_META[ck] || { icon: 'fa-check', label: ck };
+    const cls = statusClass(ch.issues);
+    const statusLabel = ch.issues === 0 ? '✅ PASS' : `❌ ${ch.issues} Issue${ch.issues>1?'s':''}`;
+    const statusColor = ch.issues === 0 ? 'text-green-400' : 'text-red-400';
+    cards.innerHTML += `
+      <div class="check-card ${cls} rounded-xl p-4 cursor-pointer hover:bg-white/5 transition-all"
+           style="background:var(--card);" onclick="showTab('${ck}')">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid ${m.icon} text-slate-400"></i>
+            <span class="text-sm font-medium text-white">${m.label}</span>
+          </div>
+          <span class="text-xs font-bold ${statusColor}">${statusLabel}</span>
+        </div>
+        <div class="flex gap-3 text-xs text-slate-400">
+          <span><span class="text-white font-semibold">${ch.total}</span> items checked</span>
+          <span><span class="${ch.issues>0?'text-red-400':'text-green-400'} font-semibold">${ch.issues}</span> issues</span>
+        </div>
+      </div>`;
+  }
+
+  // Tabs
+  buildTabs(checks);
+
+  document.getElementById('results-panel').classList.remove('hidden');
+  document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth' });
+
+  // Save to history
+  saveToHistory(data);
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+let activeTab = null;
+
+function buildTabs(checks) {
+  const tabBar     = document.getElementById('result-tabs');
+  const tabContent = document.getElementById('result-tab-contents');
+  tabBar.innerHTML = '';
+  tabContent.innerHTML = '';
+
+  for (const [ck, ch] of Object.entries(checks)) {
+    const m = CHECK_META[ck] || { icon: 'fa-check', label: ck };
+    const dot = ch.issues > 0 ? `<span class="ml-1.5 inline-flex w-4 h-4 rounded-full text-xs items-center justify-center font-bold bg-red-600 text-white">${ch.issues > 9 ? '9+' : ch.issues}</span>` : '';
+
+    tabBar.innerHTML += `
+      <button id="tab-btn-${ck}"
+              class="tab-btn py-3 px-3 text-xs font-medium text-slate-400 whitespace-nowrap flex items-center gap-1"
+              onclick="showTab('${ck}')">
+        <i class="fa-solid ${m.icon}"></i> ${m.label}${dot}
+      </button>`;
+
+    const tDiv = document.createElement('div');
+    tDiv.id = `tab-${ck}`;
+    tDiv.className = 'tab-content';
+    tDiv.innerHTML = ch.sub_checks ? buildSubChecks(ck, ch) : buildTable(ck, ch);
+    tabContent.appendChild(tDiv);
+  }
+
+  // Activate first tab
+  const first = Object.keys(checks)[0];
+  if (first) showTab(first);
+}
+
+function showTab(ck) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  const btn = document.getElementById(`tab-btn-${ck}`);
+  const tab = document.getElementById(`tab-${ck}`);
+  if (btn) btn.classList.add('active');
+  if (tab) tab.classList.add('active');
+  activeTab = ck;
+  // Trigger filter to set row count for main table and any sub-check tables
+  filterTable(ck);
+  if (tab) {
+    tab.querySelectorAll('table[id^="tbl-"]').forEach(tbl => {
+      filterTable(tbl.id.replace('tbl-', ''));
+    });
+  }
+}
+
+// ── Sub-Check Renderer ────────────────────────────────────────────────────
+function toggleSubCheck(collapseId, btn) {
+  const el = document.getElementById(collapseId);
+  if (!el) return;
+  const collapsed = el.style.display === 'none';
+  el.style.display = collapsed ? '' : 'none';
+  btn.innerHTML = collapsed
+    ? '<i class="fa-solid fa-chevron-up text-xs"></i>'
+    : '<i class="fa-solid fa-chevron-down text-xs"></i>';
+}
+
+function buildSubChecks(ck, ch) {
+  let html = '';
+  ch.sub_checks.forEach((sc, i) => {
+    const subCk      = `${ck}__s${i}`;
+    const collapseId = `collapse-${subCk}`;
+    const btnId      = `btn-${subCk}`;
+    const hasIssues  = sc.issues > 0;
+    const issuesBadge = hasIssues
+      ? `<span class="text-xs font-bold text-red-400">${sc.issues} mismatch${sc.issues !== 1 ? 'es' : ''}</span>`
+      : `<span class="text-xs text-green-500">&#10003; all match</span>`;
+    // Collapse "all match" panels by default; expand panels with issues
+    const initStyle  = hasIssues ? '' : 'display:none';
+    const initIcon   = hasIssues ? 'fa-chevron-up' : 'fa-chevron-down';
+    html += `<div class="mb-6">
+      <div class="flex items-center gap-3 mb-2 pb-2 border-b border-slate-700 cursor-pointer select-none"
+           onclick="toggleSubCheck('${collapseId}', document.getElementById('${btnId}'))">
+        <button id="${btnId}" class="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-300 flex-shrink-0">
+          <i class="fa-solid ${initIcon} text-xs"></i>
+        </button>
+        <h3 class="text-sm font-semibold text-slate-200">${sc.subtitle}</h3>
+        <span class="text-xs text-slate-500">${sc.total} rows</span>
+        ${issuesBadge}
+      </div>
+      <div id="${collapseId}" style="${initStyle}">
+        ${buildTable(subCk, sc)}
+      </div>
+    </div>`;
+  });
+  return html;
+}
+
+// ── Table Builder ──────────────────────────────────────────────────────────
+const STATUS_CSS = {
+  'MATCH':             'bg-green-900/60 text-green-300',
+  'OK':                'bg-green-900/60 text-green-300',
+  'NO QTY':            'bg-slate-700/60 text-slate-300',
+  'MISMATCH':          'bg-red-900/60 text-red-300',
+  'COUNT MISMATCH':    'bg-red-900/60 text-red-300',
+  'ID MISMATCH':       'bg-purple-900/60 text-purple-300',
+  'SAME ID':           'bg-slate-700/60 text-slate-400',
+  'PRICE VARIANCE':    'bg-slate-700/60 text-slate-300',
+  'PRICE MISMATCH':    'bg-red-900/70 text-red-200 font-bold',
+  'ZERO IN PROD':      'bg-red-900/70 text-red-200 font-bold',
+  'ZERO IN UAT':       'bg-red-900/70 text-red-200 font-bold',
+  'CHANGED':           'bg-yellow-900/60 text-yellow-300',
+  'MISSING IN UAT':    'bg-red-900/60 text-red-300',
+  'MISSING IN PROD':   'bg-orange-900/60 text-orange-300',
+  'NEW IN UAT':        'bg-orange-900/60 text-orange-300',
+  'REMOVED FROM UAT':  'bg-red-900/60 text-red-300',
+  'BOTH MISSING':      'bg-red-900/60 text-red-300',
+  'CRITICAL':          'bg-red-900/70 text-red-200 font-bold',
+  'WARNING':           'bg-yellow-900/60 text-yellow-300',
+};
+
+function statusCss(st) {
+  const upper = (st || '').toUpperCase();
+  // Exact match first to prevent e.g. "MISMATCH" being caught by "MATCH"
+  if (STATUS_CSS[upper]) return STATUS_CSS[upper];
+  // Fallback: substring match
+  for (const [k, v] of Object.entries(STATUS_CSS)) {
+    if (upper.includes(k)) return v;
+  }
+  return 'text-slate-300';
+}
+
+// Render comma-separated ref keys as coloured chips
+function renderChips(val, colour) {
+  if (!val || val === '—') return '<span class="text-slate-500">—</span>';
+  const chips = val.split(',').map(s => s.trim()).filter(Boolean);
+  return chips.map(c => {
+    const short = c.replace(/^[^.]+\./, '').replace(/-[0-9a-f]{8}$/, '');
+    return `<span class="inline-block px-2 py-0.5 mr-1 mb-1 rounded text-xs font-medium ${colour}"
+                  title="${escHtml(c)}">${escHtml(short)}</span>`;
+  }).join('');
+}
+
+// Render an ordered sequence string as diff-aware chips
+// role: 'prod' or 'uat'  — controls colour meaning
+function renderSequence(seqStr, counterpartStr, role) {
+  if (!seqStr || seqStr === '—') return '<span class="text-slate-500">—</span>';
+  const hasEllipsis = seqStr.endsWith('…');
+  const raw   = hasEllipsis ? seqStr.slice(0, -1) : seqStr;
+  const items = raw.split(' → ').map(s => s.trim()).filter(Boolean);
+  // Strip ellipsis from the counterpart string too before splitting
+  const counterRaw = (counterpartStr || '').endsWith('…')
+    ? (counterpartStr || '').slice(0, -1)
+    : (counterpartStr || '');
+  const other = counterRaw.split(' → ').map(s => s.trim()).filter(Boolean);
+
+  const html = items.map((item, i) => {
+    const inOther  = other.includes(item);
+    const samePos  = other[i] === item;
+    let cls;
+    if (role === 'prod') {
+      cls = !inOther  ? 'bg-red-900/70 text-red-200 line-through'       // removed in UAT
+          : !samePos  ? 'bg-yellow-900/70 text-yellow-200'              // same item, different position
+          :             'bg-slate-700/50 text-slate-300';               // match
+    } else {
+      cls = !inOther  ? 'bg-green-900/70 text-green-200'               // new in UAT
+          : !samePos  ? 'bg-yellow-900/70 text-yellow-200'             // same item, different position
+          :             'bg-slate-700/50 text-slate-300';              // match
+    }
+    return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${cls}" title="${escHtml(item)}">${escHtml(item.length > 28 ? item.slice(0,26)+'…' : item)}</span>`;
+  }).join('<span class="text-slate-600 text-xs mx-0.5 select-none">→</span>');
+
+  return html + (hasEllipsis ? '<span class="text-slate-500 text-xs ml-1">…</span>' : '');
+}
+
+// Render diff_summary as a coloured badge
+function renderDiffSummary(val) {
+  if (!val || val === '—') return '<span class="text-slate-500">—</span>';
+  const v = String(val);
+  if (v === 'MATCH') return `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-green-900/60 text-green-300">MATCH</span>`;
+  const parts = v.split(' | ');
+  return parts.map(p => {
+    const cls = p.startsWith('+') ? 'bg-green-900/60 text-green-300'
+              : p.startsWith('-') ? 'bg-red-900/60 text-red-300'
+              : 'bg-yellow-900/60 text-yellow-300';
+    return `<span class="inline-block px-2 py-0.5 rounded text-xs font-semibold ${cls} mr-1">${escHtml(p)}</span>`;
+  }).join('');
+}
+
+// Render chips grouped by product group — [{group, items}, ...]
+function renderGroupedChips(groups, colour) {
+  if (!groups || groups.length === 0) return '<span class="text-slate-500">—</span>';
+  return groups.map(g =>
+    `<div class="mb-2 last:mb-0">
+      <div class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">${escHtml(g.group)}</div>
+      <div class="flex flex-wrap gap-1">${
+        g.items.map(item =>
+          `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${colour}">${escHtml(item)}</span>`
+        ).join('')
+      }</div>
+    </div>`
+  ).join('');
+}
+
+// Explicit column order overrides — keys listed here will appear in this order;
+// any extra keys not in the list are appended at the end.
+const COLUMN_ORDER = {
+  product_count:                ['category','prod_cat_id','uat_cat_id','prod_count','uat_count','delta','status'],
+  delta_products:               ['product','product_id','category','is_virtual','is_recipe','price','calories','status','test_action'],
+  non_virtual:                  ['product','prod_id','uat_id','id_status','prod_used_by','uat_used_by','object_type','prod_price','uat_price','price_status','prod_availability','uat_availability','availability_status','prod_calories','uat_calories','calories_status','child_avail_issues','overall_status'],
+  display_names:                ['prod_id','uat_id','prod_display_name','uat_display_name','prod_description','uat_description','status'],
+  ingredients:                  ['prod_key','uat_key','used_by','prod_count','uat_count','removed','status','added'],
+  'recipe_flags__s0':           ['id','name','prod_isRecipe','uat_isRecipe','prod_isDefault','uat_isDefault','status'],
+  'recipe_flags__s2':           ['id','name','used_by_product','prod_isDefault','uat_isDefault','status'],
+  'modifier_minmax__s0':        ['group','prod_group_id','uat_group_id','prod_min','prod_max','uat_min','uat_max','prod_children','uat_children','status'],
+  'modifier_minmax__s1':        ['group','prod_group_id','uat_group_id','prod_min','prod_max','uat_min','uat_max','prod_children','uat_children','status'],
+  'modifier_minmax__s2':        ['group','child','used_by','prod_min','prod_max','uat_min','uat_max','status'],
+  'modifier_minmax__s3':        ['group','child','used_by','prod_min','prod_max','uat_min','uat_max','status'],
+  // Sub-check A – Menu Page: sub-category navigation order
+  'modifier_ordering__s0':      ['parent_category','prod_count','uat_count','prod_order','uat_order','diff_summary','status'],
+  // Sub-check B – Products List Page: product sequence within category
+  'modifier_ordering__s1':      ['category','prod_count','uat_count','prod_order','uat_order','diff_summary','status'],
+  // Sub-check C – Product Detail: ingredientRefs & modifierGroupRefs order (one row per product)
+  'modifier_ordering__s2':      ['prod_id','uat_id','prod_ing_order','uat_ing_order','prod_mod_order','uat_mod_order','ing_diff','mod_diff','status'],
+  // Sub-check D – Group Children: options sequence
+  'modifier_ordering__s3':      ['group_name','prod_group_id','uat_group_id','used_by','prod_count','uat_count','prod_order','uat_order','diff_summary','status'],
+};
+
+// Minimum column widths (px) keyed by "checkKey::columnName" or just "columnName"
+const COLUMN_MIN_WIDTHS = {
+  'recipe_flags__s2::used_by_product': 280,
+  'recipe_flags__s2::name':            280,
+  'modifier_ordering__s3::used_by': 320,
+  'modifier_ordering__s3::prod_group_id': 260,
+  'modifier_ordering__s3::uat_group_id': 260,
+  'ingredients::prod_key': 240,
+  'ingredients::uat_key': 240,
+  'ingredients::used_by': 240,
+  'ingredients::removed': 280,
+  'ingredients::added': 280,
+  'modifier_ordering__s3::prod_order': 200,
+  'modifier_ordering__s3::uat_order': 200,
+};
+
+function buildTable(ck, ch) {
+  const findings = ch.findings || [];
+  if (!findings.length) {
+    return `<div class="text-center py-12 text-slate-500">
+      <i class="fa-solid fa-circle-check text-4xl text-green-600 mb-3 block"></i>
+      No findings – all checks passed for this category.
+    </div>`;
+  }
+
+  const allKeys = Object.keys(findings[0]);
+  const ordered = COLUMN_ORDER[ck];
+  // Columns explicitly hidden per check (keyed by check name, or '*' for all checks)
+  const HIDDEN_COLUMNS = {
+    '*':         ['norm_key', 'child_avail_detail'],
+    ingredients: ['product'],
+  };
+  const hiddenForCk = new Set([...(HIDDEN_COLUMNS['*'] || []), ...(HIDDEN_COLUMNS[ck] || [])]);
+  // Use explicit order if defined; append any remaining keys not listed (excluding hidden)
+  const keys = ordered
+    ? [...ordered.filter(k => allKeys.includes(k)), ...allKeys.filter(k => !ordered.includes(k) && !hiddenForCk.has(k))]
+    : allKeys.filter(k => !hiddenForCk.has(k));
+  const maxRows = 500;
+  const tableId = `tbl-${ck}`;
+
+  // Collect unique status values for the dropdown
+  const uniqueStatuses = [...new Set(
+    findings.map(r => String(r.status || r.overall_status || '').toUpperCase()).filter(Boolean)
+  )].sort();
+
+  // Collect sub-status columns (e.g. price_status, availability_status, calories_status)
+  const subStatusKeys = keys.filter(k => k.endsWith('_status') && k !== 'overall_status' && k !== 'status');
+
+  // Determine if this check has any non-MATCH/OK rows
+  const hasIssues = findings.some(r => {
+    const st = String(r.status || r.overall_status || '').toUpperCase();
+    return st !== 'MATCH' && st !== 'OK';
+  });
+
+  // Build toolbar: row count + search + status dropdown + sub-status dropdowns + issues-only
+  let html = `<div class="flex items-center gap-3 mb-2 flex-wrap">
+    <span class="text-xs text-slate-500 mr-auto" id="row-count-${ck}"></span>
+    <input type="search" id="search-${ck}" oninput="filterTable('${ck}')"
+           placeholder="Search…"
+           class="rounded px-3 py-1 text-xs bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-52" />
+    ${subStatusKeys.length === 0 ? `<select id="status-filter-${ck}" onchange="filterTable('${ck}')"
+            class="rounded px-2 py-1 text-xs bg-slate-700 border border-slate-600 text-slate-200 focus:outline-none focus:border-indigo-500">
+      <option value="">All statuses</option>
+      ${uniqueStatuses.map(s => `<option value="${s}">${s}</option>`).join('')}
+    </select>` : `<input type="hidden" id="status-filter-${ck}" value="" />`}
+    ${subStatusKeys.map(sk => {
+      const uv = [...new Set(findings.map(r => String(r[sk]||'').toUpperCase()).filter(Boolean))].sort();
+      if (uv.length < 2) return '';
+      return `<select id="sub-filter-${ck}__${sk}" onchange="filterTable('${ck}')" title="${fmtHeader(sk)}"
+        class="rounded px-2 py-1 text-xs bg-slate-700 border border-slate-600 text-slate-200 focus:outline-none focus:border-indigo-500">
+        <option value="">All ${fmtHeader(sk)}</option>
+        ${uv.map(s=>`<option value="${s}">${s}</option>`).join('')}
+      </select>`;
+    }).join('')}
+    ${ck === 'ingredients' ? `<select id="ing-dir-filter-${ck}" onchange="filterTable('${ck}')"
+      class="rounded px-2 py-1 text-xs bg-slate-700 border border-slate-600 text-slate-200 focus:outline-none focus:border-indigo-500">
+      <option value="">All changes</option>
+      <option value="removed">⬅ Only in PROD</option>
+      <option value="added">➕ Only in UAT</option>
+      <option value="both">⇄ Both directions</option>
+    </select>` : ''}
+    ${ck === 'non_virtual' ? `<select id="child-avail-filter-${ck}" onchange="filterTable('${ck}')"
+      class="rounded px-2 py-1 text-xs bg-slate-700 border border-slate-600 text-slate-200 focus:outline-none focus:border-indigo-500">
+      <option value="">All Ingr. Avail</option>
+      <option value="issues">⚠ Has Issues</option>
+      <option value="ok">✓ No Issues</option>
+    </select>` : ''}`;
+  if (hasIssues) {
+    html += `<label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none">
+      <input type="checkbox" id="issues-only-${ck}" onchange="filterTable('${ck}')"
+             class="accent-indigo-500 w-3.5 h-3.5" />
+      <span>Issues only</span>
+    </label>`;
+  }
+  html += `<button onclick="resetFilters('${ck}')" title="Clear all filters"
+    class="rounded px-2 py-1 text-xs bg-slate-600 hover:bg-slate-500 border border-slate-500 text-slate-300 flex items-center gap-1">
+    <i class="fa-solid fa-rotate-left text-xs"></i> Reset
+  </button>`;
+  html += `</div>
+  <div class="overflow-auto rounded-xl" style="max-height:70vh">
+    <table class="tbl w-full border-collapse" id="${tableId}">
+      <thead><tr>`;
+  for (const k of keys) {
+    const mw = COLUMN_MIN_WIDTHS[`${ck}::${k}`] || COLUMN_MIN_WIDTHS[k] || null;
+    const wStyle = mw ? ` style="min-width:${mw}px"` : '';
+    const isProductCol = (k === 'product' && ck === 'non_virtual');
+    const stickyTh = isProductCol ? ' sticky left-0 z-10' : '';
+    const stickyBg = isProductCol ? ' style="background:var(--card);min-width:160px"' : wStyle;
+    html += `<th class="px-3 py-2 text-left font-semibold${stickyTh}" title="${fmtHeader(k)}"${stickyBg}>${fmtHeader(k)}</th>`;
+  }
+  html += `</tr></thead><tbody>`;
+
+  let prefix = '';
+  if (ck === 'ingredients') {
+    prefix = `<div class="flex flex-wrap items-center gap-3 mb-3 px-3 py-2.5 rounded-lg text-xs" style="background:var(--surface);border:1px solid rgba(99,102,241,0.2);">
+      <span class="text-slate-300 font-semibold">How to read this table:</span>
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-900/50 text-red-300 border border-red-800/40">
+        <i class="fa-solid fa-arrow-left text-xs"></i>
+        <span><strong>Only in PROD</strong> — ingredient exists in PROD but is missing in UAT (may be removed)</span>
+      </span>
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-900/50 text-green-300 border border-green-800/40">
+        <i class="fa-solid fa-plus text-xs"></i>
+        <span><strong>Only in UAT</strong> — new ingredient in UAT, not yet pushed to PROD</span>
+      </span>
+      <span class="text-slate-500 italic">Counts = total ingredient items linked to the product.</span>
+    </div>`;
+  }
+
+  // Sort issue rows to the top so they're never cut off by the maxRows cap
+  const isOk = r => { const s = String(r.status || r.overall_status || '').toUpperCase(); return s === 'MATCH' || s === 'OK' || s === 'NO QTY'; };
+  const sorted = [...findings].sort((a, b) => isOk(a) - isOk(b));
+
+  for (const row of sorted.slice(0, maxRows)) {
+    const statusVal = String(row.status || row.overall_status || '').toUpperCase();
+    const isMatch = statusVal === 'MATCH' || statusVal === 'OK' || statusVal === 'NO QTY';
+    const subData = subStatusKeys.map(sk => `data-sub_${sk}="${String(row[sk]||'').toUpperCase()}"`).join(' ');
+    const ingDir = ck === 'ingredients'
+      ? (() => { const hasR = Array.isArray(row.removed) && row.removed.length > 0; const hasA = Array.isArray(row.added) && row.added.length > 0; return hasR && hasA ? 'both' : hasR ? 'removed' : hasA ? 'added' : 'none'; })()
+      : '';
+    const ingDirAttr = ingDir ? `data-ing-dir="${ingDir}"` : '';
+    // Check 8: make rows clickable to open the product tree drawer
+    const drawerAttr = ck === 'non_virtual' && row.norm_key
+      ? `onclick="openProductDrawer(this)" style="cursor:pointer;" title="Click to view product tree"
+         data-norm-key="${row.norm_key.replace(/"/g,'&quot;')}"
+         data-prod-used-by="${String(row.prod_used_by||'').replace(/"/g,'&quot;')}"
+         data-uat-used-by="${String(row.uat_used_by||'').replace(/"/g,'&quot;')}"
+         data-child-avail-issues="${row.child_avail_issues || 0}"`
+      : '';
+    html += `<tr data-match="${isMatch}" data-status="${statusVal}" ${subData} ${ingDirAttr} ${drawerAttr} class="${ck === 'non_virtual' ? 'hover:bg-indigo-900/20 transition-colors' : ''}">`;
+    for (const k of keys) {
+      const val = row[k];
+      const isStatus = k === 'status' || k === 'overall_status' || k.endsWith('_status');
+      const css = isStatus ? statusCss(String(val)) : '';
+
+      let cellHtml;
+      if (k === 'added' || k === 'removed') {
+        const colour = k === 'added' ? 'bg-green-900/70 text-green-300' : 'bg-red-900/70 text-red-300';
+        if (Array.isArray(val)) {
+          cellHtml = renderGroupedChips(val, colour);
+        } else if (!isMatch) {
+          cellHtml = renderChips(String(val ?? '—'), colour);
+        } else {
+          cellHtml = '<span class="text-slate-500">—</span>';
+        }
+      } else if (k.startsWith('prod_') && k.endsWith('_order')) {
+        const counterKey = 'uat_' + k.slice(5);
+        cellHtml = renderSequence(String(val ?? '—'), String(row[counterKey] ?? '—'), 'prod');
+      } else if (k.startsWith('uat_') && k.endsWith('_order')) {
+        const counterKey = 'prod_' + k.slice(4);
+        cellHtml = renderSequence(String(val ?? '—'), String(row[counterKey] ?? '—'), 'uat');
+      } else if (k === 'diff_summary' || k.endsWith('_diff')) {
+        cellHtml = renderDiffSummary(String(val ?? '—'));
+      } else if (k === 'child_avail_issues') {
+        const count = parseInt(val) || 0;
+        const detail = row.child_avail_detail || '';
+        if (count === 0) {
+          cellHtml = '<span class="text-slate-500">—</span>';
+        } else {
+          cellHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-orange-900/60 text-orange-300 border border-orange-700/40" title="${escHtml(detail)}">
+            <i class="fa-solid fa-triangle-exclamation text-xs"></i> ${count} item${count !== 1 ? 's' : ''}
+          </span>`;
+        }
+      } else {
+        const display = val === null || val === undefined ? '—' : String(val);
+        cellHtml = isStatus ? escHtml(display) : escHtml(display);
+      }
+
+      const isProductCell = (k === 'product' && ck === 'non_virtual');
+      const stickyCell = isProductCell ? ' sticky left-0 z-10 font-semibold text-white' : '';
+      const stickyCellStyle = isProductCell ? ' style="background:var(--card);min-width:160px"' : '';
+      html += `<td class="px-3 py-1.5${stickyCell} ${css} ${isStatus ? 'rounded text-center text-xs font-medium' : ''} ${(k.endsWith('_order')) ? 'max-w-xs' : ''}"${stickyCellStyle}>${cellHtml}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  html += `</tbody></table></div>`;
+
+  return (prefix || '') + html;
+}
+
+function filterTable(ck) {
+  const issuesOnly   = document.getElementById(`issues-only-${ck}`)?.checked ?? false;
+  const statusFilter = (document.getElementById(`status-filter-${ck}`)?.value ?? '').toUpperCase();
+  const searchTerm   = (document.getElementById(`search-${ck}`)?.value ?? '').toLowerCase().trim();
+  // Collect all active sub-status filters
+  const subFilters = [...document.querySelectorAll(`[id^="sub-filter-${ck}__"]`)]
+    .map(el => ({ key: el.id.replace(`sub-filter-${ck}__`, ''), val: el.value.toUpperCase() }))
+    .filter(f => f.val);
+  const ingDirFilter = (document.getElementById(`ing-dir-filter-${ck}`)?.value ?? '').toLowerCase();
+  const table = document.getElementById(`tbl-${ck}`);
+  if (!table) return;
+  let shown = 0, total = 0;
+  table.querySelectorAll('tbody tr').forEach(tr => {
+    total++;
+    const isMatch  = tr.dataset.match === 'true';
+    const rowSt    = (tr.dataset.status || '').toUpperCase();
+    const rowText  = tr.textContent.toLowerCase();
+    const hideByIssues = issuesOnly && isMatch;
+    const hideByStatus = statusFilter && rowSt !== statusFilter;
+    const hideBySearch = searchTerm && !rowText.includes(searchTerm);
+    const hideBySubStatus = subFilters.some(f => {
+      const cellVal = (tr.dataset[`sub_${f.key}`] || '').toUpperCase();
+      return cellVal !== f.val;
+    });
+    const hideByIngDir = ingDirFilter && (tr.dataset.ingDir || 'none') !== ingDirFilter;
+    const childAvailFilter = (document.getElementById(`child-avail-filter-${ck}`)?.value ?? '');
+    const childAvailCount  = parseInt(tr.dataset.childAvailIssues ?? '0') || 0;
+    const hideByChildAvail = childAvailFilter === 'issues' ? childAvailCount === 0
+                           : childAvailFilter === 'ok'     ? childAvailCount > 0
+                           : false;
+    const hide = hideByIssues || hideByStatus || hideBySearch || hideBySubStatus || hideByIngDir || hideByChildAvail;
+    tr.style.display = hide ? 'none' : '';
+    if (!hide) shown++;
+  });
+  const countEl = document.getElementById(`row-count-${ck}`);
+  if (countEl) countEl.textContent = `Showing ${shown} of ${total} rows`;
+}
+
+function resetFilters(ck) {
+  const search = document.getElementById(`search-${ck}`);
+  if (search) search.value = '';
+  const statusSel = document.getElementById(`status-filter-${ck}`);
+  if (statusSel) statusSel.value = '';
+  const issuesChk = document.getElementById(`issues-only-${ck}`);
+  if (issuesChk) issuesChk.checked = false;
+  document.querySelectorAll(`[id^="sub-filter-${ck}__"]`).forEach(el => el.value = '');
+  const ingDirF = document.getElementById(`ing-dir-filter-${ck}`);
+  if (ingDirF) ingDirF.value = '';
+  const childAvailF = document.getElementById(`child-avail-filter-${ck}`);
+  if (childAvailF) childAvailF.value = '';
+  filterTable(ck);
+}
+
+function fmtHeader(key) {
+  const OVERRIDES = {
+    prod_count:  'PROD Count',
+    uat_count:   'UAT Count',
+    removed:     '⬅ Only in PROD',
+    added:       '➕ Only in UAT',
+    product_id:  'Product ID',
+    prod_key:    'PROD Product ID',
+    uat_key:     'UAT Product ID',
+    child_avail_issues:  'Ingr. Avail Issues',
+    used_by:             'Displayed In (Categories)',
+    used_by_product:     'Used By (Item)',
+    prod_id:             'PROD ID',
+    uat_id:              'UAT ID',
+    prod_group_id:       'PROD Group ID',
+    uat_group_id:        'UAT Group ID',
+    prod_display_name:   'PROD Display Name',
+    uat_display_name:    'UAT Display Name',
+    prod_description:    'PROD Description',
+    uat_description:     'UAT Description',
+    prod_store:  'PROD Store',
+    uat_store:   'UAT Store',
+  };
+  return OVERRIDES[key] || key.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Tab jump helpers ───────────────────────────────────────────────────────
+function jumpToTab(ck, filterStatus) {
+  showTab(ck);
+  // Apply status filter if provided
+  if (filterStatus) {
+    // Try the overall status-filter select first
+    const sel = document.getElementById(`status-filter-${ck}`);
+    if (sel) {
+      sel.value = filterStatus;
+    } else {
+      // Check uses sub-status selects — find overall_status sub-filter
+      const subSel = document.getElementById(`sub-filter-${ck}__overall_status`);
+      if (subSel) subSel.value = filterStatus;
+    }
+    // Also uncheck issues-only so the filter drives visibility
+    const issuesChk = document.getElementById(`issues-only-${ck}`);
+    if (issuesChk) issuesChk.checked = false;
+    filterTable(ck);
+  }
+  const tabsEl = document.getElementById('result-tabs');
+  if (tabsEl) tabsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function jumpToFirstIssue() {
+  if (!STATE.results) return;
+  const checks = STATE.results.checks || {};
+  const order = ['non_virtual','delta_products','product_count','modifier_minmax',
+                 'display_names','modifier_ordering','recipe_flags','ingredients'];
+  for (const ck of order) {
+    if (checks[ck] && checks[ck].issues > 0) {
+      showTab(ck);
+      // Tick "Issues only" so only the issue rows are shown
+      const issuesChk = document.getElementById(`issues-only-${ck}`);
+      if (issuesChk) { issuesChk.checked = true; filterTable(ck); }
+      const tabsEl = document.getElementById('result-tabs');
+      if (tabsEl) tabsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+  }
+  const tabsEl = document.getElementById('result-tabs');
+  if (tabsEl) tabsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── History ───────────────────────────────────────────────────────────────
+let _historyCache = {};
+
+async function saveToHistory(data) {
+  const { meta, summary, report_id } = data;
+  const entry = {
+    brand:            meta.brand,
+    prod_store:       meta.prod_store,
+    uat_store:        meta.uat_store,
+    timestamp:        new Date().toISOString(),
+    total_issues:     summary.total_issues,
+    critical:         summary.critical,
+    warnings:         summary.warnings,
+    new_products:     summary.new_products,
+    removed_products: summary.removed_products,
+    report_id:        report_id,
+  };
+  try {
+    const res    = await fetch('/api/history', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(entry),
+    });
+    const result = await res.json();
+    _historyCache = null; // invalidate so next open re-fetches
+    updateHistoryBtn(result.count);
+  } catch(e) { console.warn('Could not save history', e); }
+}
+
+async function loadHistoryCount() {
+  try {
+    const res = await fetch('/api/history');
+    _historyCache = await res.json();
+    const total = Object.values(_historyCache).reduce((s, arr) => s + arr.length, 0);
+    updateHistoryBtn(total);
+  } catch(e) { console.warn('Could not load history', e); }
+}
+
+function updateHistoryBtn(count) {
+  const btn   = document.getElementById('history-btn');
+  const badge = document.getElementById('history-badge');
+  if (!btn) return;
+  if (count > 0) {
+    btn.classList.remove('hidden');
+    btn.classList.add('flex');
+    badge.textContent = count;
+  } else {
+    btn.classList.add('hidden');
+    btn.classList.remove('flex');
+  }
+}
+
+async function toggleHistory() {
+  const panel = document.getElementById('history-panel');
+  if (!panel) return;
+  if (panel.classList.contains('hidden')) {
+    await renderHistoryPanel();
+    panel.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+async function renderHistoryPanel() {
+  try {
+    const res    = await fetch('/api/history');
+    _historyCache = await res.json();
+  } catch(e) {
+    console.warn('Could not load history', e);
+    _historyCache = {};
+  }
+  const container = document.getElementById('history-entries');
+  if (!container) return;
+  const total = Object.values(_historyCache).reduce((s, arr) => s + arr.length, 0);
+  if (total === 0) {
+    container.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">No analysis history yet.</p>';
+    return;
+  }
+  const brandOrder = ['B2', 'B1', 'B3'];
+  let html = '';
+  for (const brand of brandOrder) {
+    const entries = _historyCache[brand] || [];
+    if (entries.length === 0) continue;
+    const brandColor   = BRAND_COLORS[brand] || '#6366F1';
+    const brandTextCls = BRAND_TEXT[brand]   || 'text-white';
+    html += `
+      <div class="mb-5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="rounded-lg px-2.5 py-1 text-xs font-bold ${brandTextCls}" style="background:${brandColor}">${brand}</span>
+          <span class="text-xs text-slate-400">${entries.length} entr${entries.length === 1 ? 'y' : 'ies'} · max 5 kept</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.75rem;">
+          ${entries.map((e, i) => renderHistoryCard(e, brand, i)).join('')}
+        </div>
+      </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function renderHistoryCard(e, brand, i) {
+  const brandColor   = BRAND_COLORS[e.brand] || '#6366F1';
+  const brandTextCls = BRAND_TEXT[e.brand]   || 'text-white';
+  const date    = new Date(e.timestamp);
+  const timeStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' +
+                  date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  return `<div class="rounded-xl p-4 border border-slate-700 hover:border-indigo-500 transition-all cursor-pointer group"
+               style="background:var(--card);" onclick="loadFromHistory('${brand}', ${i})">
+    <div class="flex flex-col gap-0.5 mb-3">
+      <span class="text-sm font-semibold text-slate-200">PROD ${e.prod_store} → UAT ${e.uat_store}</span>
+      <span class="text-xs text-slate-500">${timeStr}</span>
+    </div>
+    <div class="flex flex-col gap-1 mb-3 text-xs">
+      <div class="flex justify-between items-center px-2 py-1 rounded" style="background:var(--surface);">
+        <span class="text-slate-400">Total Issues</span>
+        <span class="font-bold text-amber-400 text-sm">${e.total_issues}</span>
+      </div>
+      <div class="flex justify-between items-center px-2 py-1 rounded" style="background:var(--surface);">
+        <span class="text-slate-400">Critical</span>
+        <span class="font-bold text-red-400 text-sm">${e.critical}</span>
+      </div>
+      <div class="flex justify-between items-center px-2 py-1 rounded" style="background:var(--surface);">
+        <span class="text-slate-400">Warnings</span>
+        <span class="font-bold text-yellow-400 text-sm">${e.warnings}</span>
+      </div>
+      <div class="flex justify-between items-center px-2 py-1 rounded" style="background:var(--surface);">
+        <span class="text-slate-400">New Products</span>
+        <span class="font-bold text-orange-400 text-sm">${e.new_products}</span>
+      </div>
+      <div class="flex justify-between items-center px-2 py-1 rounded" style="background:var(--surface);">
+        <span class="text-slate-400">Removed</span>
+        <span class="font-bold text-red-500 text-sm">${e.removed_products}</span>
+      </div>
+    </div>
+    <div class="flex items-center justify-between text-xs">
+      <span class="text-indigo-400 group-hover:text-indigo-300 transition-colors">
+        <i class="fa-solid fa-rotate-left mr-1"></i>Restore settings
+      </span>
+      ${e.report_id ? `<a href="/api/download/${e.report_id}" target="_blank"
+           onclick="event.stopPropagation()"
+           class="text-green-400 hover:text-green-300 transition-colors">
+          <i class="fa-solid fa-file-excel mr-1"></i>Excel
+        </a>` : ''}
+    </div>
+  </div>`;
+}
+
+function loadFromHistory(brand, idx) {
+  const entries = (_historyCache && _historyCache[brand]) || [];
+  const e = entries[idx];
+  if (!e) return;
+  selectBrand(e.brand);
+  setMode('live');
+  document.getElementById('prod-store').value = e.prod_store;
+  document.getElementById('uat-store').value  = e.uat_store;
+  document.getElementById('history-panel').classList.add('hidden');
+  document.getElementById('run-btn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function clearHistory() {
+  try {
+    await fetch('/api/history', { method: 'DELETE' });
+    _historyCache = {};
+    updateHistoryBtn(0);
+    document.getElementById('history-panel').classList.add('hidden');
+  } catch(e) { console.warn('Could not clear history', e); }
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+function resetAll() {
+  STATE.brand = null;
+  STATE.prodFile = null;
+  STATE.uatFile = null;
+  STATE.results = null;
+  document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('prod-store').value = '';
+  document.getElementById('uat-store').value  = '';
+  document.getElementById('results-panel').classList.add('hidden');
+  document.getElementById('error-panel').classList.add('hidden');
+  document.getElementById('store-map-hint').classList.add('hidden');
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('run-btn-text').textContent = 'Run Analysis';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PRODUCT TREE DRAWER
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function openProductDrawer(elOrKey, prodUsedBy, uatUsedBy) {
+  const normKey = (typeof elOrKey === 'string') ? elOrKey
+                : elOrKey.dataset.normKey;
+  if (typeof elOrKey !== 'string') {
+    prodUsedBy = elOrKey.dataset.prodUsedBy || '';
+    uatUsedBy  = elOrKey.dataset.uatUsedBy  || '';
+  }
+  const reportId = STATE.results && STATE.results.report_id;
+  if (!reportId) return;
+
+  const drawer    = document.getElementById('product-drawer');
+  const body      = document.getElementById('drawer-body');
+  const titleEl   = document.getElementById('drawer-title');
+  const subtitleEl= document.getElementById('drawer-subtitle');
+
+  // Show loading state
+  titleEl.textContent   = 'Loading…';
+  subtitleEl.textContent = normKey;
+  body.innerHTML        = '<div class="flex items-center justify-center h-40 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Fetching product tree…</div>';
+  drawer.classList.remove('translate-x-full');
+  document.getElementById('drawer-overlay').classList.remove('hidden');
+
+  try {
+    const res  = await fetch(`/api/product_tree?report_id=${reportId}&norm_key=${encodeURIComponent(normKey)}`);
+    const data = await res.json();
+    if (data.status !== 'ok') throw new Error(data.message || 'Unknown error');
+    data._prodUsedBy = prodUsedBy || '';
+    data._uatUsedBy  = uatUsedBy  || '';
+    renderDrawer(data, normKey);
+  } catch(e) {
+    titleEl.textContent   = 'Error';
+    subtitleEl.textContent = '';
+    body.innerHTML = `<div class="p-6 text-red-400">${e.message}</div>`;
+  }
+}
+
+function closeProductDrawer() {
+  document.getElementById('product-drawer').classList.add('translate-x-full');
+  document.getElementById('drawer-overlay').classList.add('hidden');
+}
+
+function renderDrawer(data, normKey) {
+  const titleEl    = document.getElementById('drawer-title');
+  const subtitleEl = document.getElementById('drawer-subtitle');
+  const body       = document.getElementById('drawer-body');
+
+  const prod = data.prod;
+  const uat  = data.uat;
+  const name = (prod || uat)?.name || normKey;
+
+  titleEl.textContent    = name;
+  subtitleEl.textContent = normKey;
+
+  // ── Used By section (full list, un-truncated) ───────────────────────────
+  function renderUsedBySection(usedByStr) {
+    if (!usedByStr || usedByStr === '—' || usedByStr === 'N/A') {
+      return '<span class="text-slate-500 text-xs italic">—</span>';
+    }
+    // Split on ', [' boundary so multi-group entries each get their own chip
+    // The format is: "[Cat/Group] NAME (id) → parent1, parent2, [Cat/Group] NAME2 (id2) → …"
+    const entries = usedByStr.split(/,\s*(?=\[)/);
+    return entries.map(entry => {
+      entry = entry.trim();
+      // Split at ' → ' to separate the group part from the parent products
+      const arrowIdx = entry.indexOf(' → ');
+      const groupPart   = arrowIdx >= 0 ? entry.slice(0, arrowIdx).trim() : entry;
+      const parentsPart = arrowIdx >= 0 ? entry.slice(arrowIdx + 3).trim() : '';
+      const isCat   = groupPart.startsWith('[Cat]');
+      const chipCls = isCat ? 'bg-indigo-900/50 text-indigo-300 border border-indigo-700/40'
+                             : 'bg-purple-900/50 text-purple-300 border border-purple-700/40';
+      const parentChips = parentsPart
+        ? parentsPart.split(',').map(p => p.trim()).filter(Boolean)
+            .map(p => `<span class="px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-300 text-xs">${escHtml(p)}</span>`)
+            .join('')
+        : '';
+      return `<div class="mb-1.5">
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${chipCls} mr-1">${escHtml(groupPart)}</span>
+        ${parentChips ? `<span class="text-slate-500 text-xs mr-1">used by →</span>${parentChips}` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Build the used-by header block (two columns: PROD left, UAT right)
+  const prodUsedBy = data._prodUsedBy || '';
+  const uatUsedBy  = data._uatUsedBy  || '';
+  const usedByHeader = `
+    <div class="mb-5 rounded-xl p-4" style="background:var(--surface);border:1px solid rgba(99,102,241,0.2);">
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Used By (where this item appears)</div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <div class="text-xs font-bold text-green-400 uppercase tracking-wider mb-2">PROD</div>
+          <div class="text-sm">${renderUsedBySection(prodUsedBy)}</div>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">UAT</div>
+          <div class="text-sm">${renderUsedBySection(uatUsedBy)}</div>
+        </div>
+      </div>
+    </div>`;
+
+  // ── Diff helpers ────────────────────────────────────────────────────────
+  function priceDiff(a, b) {
+    const aNone = a === null || a === undefined;
+    const bNone = b === null || b === undefined;
+    if (aNone && bNone) return 'ok';
+    if (aNone || bNone) return 'missing';
+    const af = parseFloat(a), bf = parseFloat(b);
+    if (af === bf) return 'ok';
+    // One side is $0, other is not → critical (maps to 'missing' highlight)
+    if (af === 0 || bf === 0) return 'missing';
+    // Diff >= $20 → critical
+    if (Math.abs(af - bf) >= 20) return 'mismatch';
+    // Diff < $20 → informational variance only
+    return 'variance';
+  }
+  function valDiff(a, b) {
+    const aNone = a === null || a === undefined;
+    const bNone = b === null || b === undefined;
+    if (aNone && bNone) return 'ok';        // both absent → no diff
+    if (aNone || bNone) return 'missing';   // one absent → flag
+    return a === b ? 'ok' : 'mismatch';
+  }
+  // Returns CSS classes for a field cell based on diff status
+  function diffCls(status, side) {
+    if (status === 'ok') return '';
+    if (status === 'missing') return 'bg-red-900/40 text-red-300 rounded px-1';
+    if (status === 'mismatch') return side === 'prod' ? 'bg-orange-900/50 text-orange-200 font-bold rounded px-1'
+                                                      : 'bg-orange-900/50 text-orange-200 font-bold rounded px-1';
+    if (status === 'variance') return 'bg-yellow-900/50 text-yellow-200 font-semibold rounded px-1';
+    return '';
+  }
+  // Border highlight for a card/row that has any diff
+  function cardBorder(hasDiff) {
+    return hasDiff ? 'border:2px solid rgba(251,146,60,0.6);' : 'border:1px solid rgba(99,102,241,0.2);';
+  }
+
+  // ── Build child lookup maps: normKey(child) -> child for each group ────
+  function childMap(groups) {
+    const m = {};
+    for (const grp of (groups || [])) {
+      m[grp.name] = {};
+      for (const c of (grp.children || [])) {
+        const nk = c.key.replace(/-[0-9a-f]{8}$/, '');
+        m[grp.name][nk] = c;
+      }
+    }
+    return m;
+  }
+
+  const prodIngMap = childMap(prod?.ingredient_groups);
+  const uatIngMap  = childMap(uat?.ingredient_groups);
+  const prodModMap = childMap(prod?.modifier_groups);
+  const uatModMap  = childMap(uat?.modifier_groups);
+
+  // ── Product-level diffs ─────────────────────────────────────────────────
+  const priceSt = prod && uat ? priceDiff(prod.price, uat.price) : 'missing';
+  const calSt   = prod && uat ? valDiff(prod.calories, uat.calories) : 'missing';
+  const availSt = prod && uat ? valDiff(prod.available, uat.available) : 'missing';
+  const topHasDiff = priceSt !== 'ok' || calSt !== 'ok' || availSt !== 'ok';
+
+  // ── Render one environment panel (with diff awareness when side-by-side) ─
+  function renderEnvTree(env, label, counterpart, ingCMap, modCMap) {
+    if (!env) return `<div class="text-slate-500 italic p-4">Not present in ${label}</div>`;
+    const side  = label === 'PROD' ? 'prod' : 'uat';
+    const isSBS = !!counterpart;
+
+    const priceStr  = env.price !== null && env.price !== undefined ? `$${parseFloat(env.price).toFixed(2)}` : '—';
+    const calStr    = env.calories !== null && env.calories !== undefined ? `${env.calories} cal` : 'N/A';
+    const availStr  = env.available === true ? '✅ Available' : env.available === false ? '❌ Unavailable' : '—';
+
+    const priceCls  = isSBS ? diffCls(priceSt, side)  : 'text-indigo-300 font-semibold';
+    const calCls    = isSBS ? diffCls(calSt,   side)  : 'text-yellow-300';
+    const availCls  = isSBS ? diffCls(availSt, side)  : '';
+    const borderSty = isSBS ? cardBorder(topHasDiff)  : 'border:1px solid rgba(99,102,241,0.2);';
+
+    // Diff badge on header
+    const diffBadge = isSBS && topHasDiff
+      ? `<span class="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-orange-600/80 text-white">⚠ DIFF</span>` : '';
+
+    let html = `
+      <div class="rounded-xl p-4 mb-4" style="background:var(--surface);${borderSty}">
+        <div class="flex flex-wrap gap-2 items-center mb-2">
+          <span class="text-base font-bold text-white">${escHtml(env.name)}</span>${diffBadge}
+        </div>
+        <div class="flex flex-wrap gap-3 text-sm mb-2">
+          <span class="${priceCls || 'text-indigo-300 font-semibold'}">${priceStr}</span>
+          <span class="${calCls || 'text-yellow-300'}">${calStr}</span>
+          <span class="${availCls}">${availStr}</span>
+        </div>
+        ${env.description ? `<p class="text-slate-400 text-xs italic">${escHtml(env.description)}</p>` : ''}
+        ${env.image_url ? `<img src="${env.image_url}" class="mt-2 rounded h-16 object-contain" onerror="this.style.display='none'" />` : ''}
+      </div>`;
+
+    function renderGroupCard(grp, colour, counterpartMap) {
+      const badgeCls = colour === 'indigo' ? 'bg-indigo-900/60 text-indigo-300' : 'bg-purple-900/60 text-purple-300';
+      const selText  = grp.min !== null && grp.min !== undefined ? `Pick ${grp.min}–${grp.max}` : '';
+      const cMap     = (counterpartMap && counterpartMap[grp.name]) || {};
+
+      let grpHasDiff = false;
+      const rows = grp.children.map(child => {
+        const nk     = child.key.replace(/-[0-9a-f]{8}$/, '');
+        const other  = isSBS ? cMap[nk] : null;
+        const cp     = other ? priceDiff(child.price, other.price) : (isSBS ? 'missing' : 'ok');
+        const cc     = other ? valDiff(child.calories, other.calories) : (isSBS ? 'missing' : 'ok');
+        const ca     = other ? valDiff(child.available, other.available) : (isSBS ? 'missing' : 'ok');
+        // If child exists in this env but not in other env when side-by-side
+        const rowMissing = isSBS && !other;
+        if (cp !== 'ok' || cc !== 'ok' || ca !== 'ok' || rowMissing) grpHasDiff = true;
+
+        const rowCls   = rowMissing ? 'bg-red-900/20' : (cp !== 'ok' || cc !== 'ok' || ca !== 'ok') ? 'bg-orange-900/15' : '';
+        const prcStr   = child.price !== null && child.price !== undefined ? `$${parseFloat(child.price).toFixed(2)}` : '—';
+        const calStr2  = child.calories !== null && child.calories !== undefined ? child.calories : '—';
+        const aStr     = child.available === true ? '✅' : child.available === false ? '❌' : '—';
+        const qStr     = child.qty_min !== null && child.qty_min !== undefined ? `${child.qty_min}–${child.qty_max}` : '—';
+        const def      = child.is_default ? ' <span class="text-yellow-400">(def)</span>' : '';
+        const missBadge= rowMissing ? ' <span class="text-red-400 text-xs">✗ not in other</span>' : '';
+
+        return `<tr class="border-b ${rowCls} hover:bg-white/5 transition-colors" style="border-color:var(--border);">
+          <td class="px-3 py-1.5 text-slate-200">${escHtml(child.name)}${def}${missBadge}</td>
+          <td class="px-3 py-1.5 text-right"><span class="${diffCls(cp, side) || 'text-indigo-300'}">${prcStr}</span></td>
+          <td class="px-3 py-1.5 text-right"><span class="${diffCls(cc, side) || 'text-yellow-300'}">${calStr2}</span></td>
+          <td class="px-3 py-1.5 text-center">${aStr}</td>
+          <td class="px-3 py-1.5 text-center text-slate-400">${qStr}</td>
+        </tr>`;
+      });
+
+      const grpBorder = isSBS && grpHasDiff ? 'border:2px solid rgba(251,146,60,0.5);' : 'border:1px solid var(--border);';
+      const grpBadge  = isSBS && grpHasDiff ? `<span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-orange-600/70 text-white">⚠</span>` : '';
+
+      return `
+        <div class="rounded-lg mb-3 overflow-hidden" style="${grpBorder}">
+          <div class="flex items-center justify-between px-3 py-2 ${badgeCls}" style="background:rgba(99,102,241,0.08);">
+            <span class="font-semibold text-sm">${escHtml(grp.name)}${grpBadge}</span>
+            <span class="flex gap-2 items-center text-xs">
+              ${selText ? `<span class="px-2 py-0.5 rounded-full ${badgeCls}">${selText}</span>` : ''}
+              <span class="text-slate-500">${grp.children.length} item${grp.children.length !== 1 ? 's' : ''}</span>
+            </span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead><tr class="text-slate-500 border-b" style="border-color:var(--border);">
+                <th class="px-3 py-1.5 text-left font-medium">Name</th>
+                <th class="px-3 py-1.5 text-right font-medium">Price</th>
+                <th class="px-3 py-1.5 text-right font-medium">Cal</th>
+                <th class="px-3 py-1.5 text-center font-medium">Avail</th>
+                <th class="px-3 py-1.5 text-center font-medium">Qty</th>
+              </tr></thead>
+              <tbody>${rows.join('')}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    if (env.ingredient_groups && env.ingredient_groups.length > 0) {
+      html += `<div class="mb-1 text-xs font-semibold text-indigo-400 uppercase tracking-wider px-1">Ingredient Groups</div>`;
+      for (const grp of env.ingredient_groups) {
+        const cMap = label === 'PROD' ? uatIngMap : prodIngMap;
+        html += renderGroupCard(grp, 'indigo', cMap);
+      }
+    }
+    if (env.modifier_groups && env.modifier_groups.length > 0) {
+      html += `<div class="mt-3 mb-1 text-xs font-semibold text-purple-400 uppercase tracking-wider px-1">Modifier Groups</div>`;
+      for (const grp of env.modifier_groups) {
+        const cMap = label === 'PROD' ? uatModMap : prodModMap;
+        html += renderGroupCard(grp, 'purple', cMap);
+      }
+    }
+    if ((!env.ingredient_groups || env.ingredient_groups.length === 0) &&
+        (!env.modifier_groups   || env.modifier_groups.length === 0)) {
+      html += `<div class="text-slate-500 text-sm italic px-1">No ingredient or modifier groups.</div>`;
+    }
+    return html;
+  }
+
+  function renderSideBySide() {
+    // Summary diff banner
+    const diffs = [];
+    if (priceSt !== 'ok') diffs.push(`Price: PROD ${prod?.price !== undefined ? '$'+parseFloat(prod.price).toFixed(2) : 'N/A'} → UAT ${uat?.price !== undefined ? '$'+parseFloat(uat.price).toFixed(2) : 'N/A'}`);
+    if (calSt   !== 'ok') diffs.push(`Calories: PROD ${prod?.calories ?? 'N/A'} → UAT ${uat?.calories ?? 'N/A'}`);
+    if (availSt !== 'ok') diffs.push(`Availability: PROD ${prod?.available} → UAT ${uat?.available}`);
+
+    const banner = diffs.length > 0 ? `
+      <div class="flex flex-wrap gap-2 mb-4 p-3 rounded-xl bg-orange-900/30 border border-orange-700/50">
+        <span class="text-orange-300 font-semibold text-xs mr-1">⚠ Top-level diffs:</span>
+        ${diffs.map(d => `<span class="px-2 py-0.5 rounded bg-orange-800/60 text-orange-200 text-xs font-mono">${escHtml(d)}</span>`).join('')}
+      </div>` : `
+      <div class="flex items-center gap-2 mb-4 p-3 rounded-xl bg-green-900/20 border border-green-800/40">
+        <span class="text-green-400 text-xs font-semibold">✅ Price, calories and availability match at product level</span>
+      </div>`;
+
+    return banner + `
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <div class="text-xs font-bold text-green-400 uppercase tracking-wider mb-2 px-1">PROD</div>
+          ${renderEnvTree(prod, 'PROD', uat)}
+        </div>
+        <div>
+          <div class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2 px-1">UAT</div>
+          ${renderEnvTree(uat, 'UAT', prod)}
+        </div>
+      </div>`;
+  }
+
+  body.innerHTML = usedByHeader + `<div id="drawer-tab-content"></div>`;
+  document.getElementById('drawer-tab-content').innerHTML = renderSideBySide();
+}
+</script>
+
+<!-- ── Product Tree Drawer ──────────────────────────────────────────────── -->
+<div id="drawer-overlay"
+     class="fixed inset-0 hidden z-40 bg-black/50 backdrop-blur-sm"
+     onclick="closeProductDrawer()"></div>
+
+<div id="product-drawer"
+     class="fixed top-0 right-0 h-full z-50 flex flex-col shadow-2xl translate-x-full transition-transform duration-300"
+     style="width:min(92vw,1100px);background:var(--card);border-left:1px solid var(--border);">
+
+  <!-- Header -->
+  <div class="flex items-start justify-between px-6 py-4 border-b" style="border-color:var(--border);">
+    <div class="flex-1 min-w-0">
+      <h2 id="drawer-title" class="text-lg font-bold text-white truncate">Product Details</h2>
+      <p id="drawer-subtitle" class="text-xs text-slate-500 font-mono mt-0.5 truncate"></p>
+    </div>
+    <button onclick="closeProductDrawer()"
+            class="ml-4 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0">
+      <i class="fa-solid fa-xmark text-lg"></i>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div id="drawer-body" class="flex-1 overflow-y-auto p-6"></div>
+</div>
+
+</body>
+</html>

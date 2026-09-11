@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTP Retriever</title>
+  <link rel="stylesheet" href="../assets/uniform.css">
+  <style>
+    .wrap { max-width: 760px; margin: 0 auto; }
+    .card { padding: 16px; margin-top: 14px; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .otp { font-family: Consolas, monospace; font-size: 44px; letter-spacing: 6px; font-weight: 800; color: #7ef57e; }
+    .history li { list-style:none; padding:8px 0; border-bottom:1px solid var(--border); font-family: Consolas, monospace; }
+    @media (max-width: 700px){ .row{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div class="container wrap">
+  <a class="nav-back" href="../index.html">← Back to dashboard</a>
+  <h1>OTP Retriever</h1>
+  <p style="color:var(--text-muted)">Local mock OTP service for framework demos.</p>
+
+  <section class="card">
+    <div class="row">
+      <select id="brand"><option>brand1</option><option>brand2</option><option>brand3</option></select>
+      <select id="env"><option>test</option><option>staging</option><option>demo</option></select>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <input id="phone" placeholder="5551234567" maxlength="10">
+      <button class="btn-primary" id="run">Retrieve OTP</button>
+    </div>
+    <div id="state" style="margin-top:10px;color:var(--text-muted)">Ready.</div>
+  </section>
+
+  <section class="card" id="result" style="display:none; text-align:center;">
+    <div style="color:var(--text-muted)">One-Time Password</div>
+    <div class="otp" id="otp">000000</div>
+    <div id="meta" style="color:var(--text-muted)"></div>
+  </section>
+
+  <section class="card">
+    <h3 style="margin-top:0;">Recent Lookups</h3>
+    <ul class="history" id="hist"></ul>
+  </section>
+</div>
+<script>
+const hist=[];
+function draw(){ const ul=document.getElementById('hist'); ul.innerHTML = hist.length ? hist.map(h=>`<li>${h.time} | ${h.brand} | ${h.phone} | ${h.otp}</li>`).join('') : '<li>No lookups yet.</li>'; }
+draw();
+document.getElementById('run').onclick=async()=>{
+  const phone=document.getElementById('phone').value.trim();
+  if(!/^\d{10}$/.test(phone)){ document.getElementById('state').textContent='Enter a 10-digit phone.'; return; }
+  document.getElementById('state').textContent='Fetching...';
+  const payload={brand:document.getElementById('brand').value,env:document.getElementById('env').value,phone};
+  const resp=await fetch('/api/otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data=await resp.json();
+  document.getElementById('result').style.display='block';
+  document.getElementById('otp').textContent=data.otp || '------';
+  document.getElementById('meta').textContent=`${data.brand} • ${data.env} • ${data.phone}`;
+  document.getElementById('state').textContent='Completed.';
+  hist.unshift({time:new Date().toLocaleTimeString(),brand:data.brand,phone:data.phone,otp:data.otp});
+  if(hist.length>8) hist.pop();
+  draw();
+};
+</script>
+</body>
+</html>

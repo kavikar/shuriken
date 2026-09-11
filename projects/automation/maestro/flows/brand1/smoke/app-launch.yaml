@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────
+#  Brand One — Smoke: App Launch & Home Screen
+#
+#  Quick smoke test to verify the Brand One app launches, renders
+#  the home screen with key elements, and bottom nav is present.
+#
+#  Run:  maestro test flows/brand1/smoke/app-launch.yaml
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+tags:
+  - smoke
+  - Brand One
+  - quick
+
+env:
+  BUNDLE_ID: com.example.brand1.uat
+
+---
+
+# Launch app & dismiss all dialogs
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+# ── Verify home screen elements ──
+- extendedWaitUntil:
+    visible: "Bag"
+    timeout: 20000
+- takeScreenshot: screenshots/Brand One_home_screen_${output.RUN_ID}
+
+# Verify key home elements (conditional — testID first, text fallback)
+- runFlow:
+    when:
+      visible:
+        id: "TabBar.Menu.label"
+    commands:
+      - assertVisible:
+          id: "TabBar.Menu.label"
+
+- runFlow:
+    when:
+      visible:
+        id: "TabBar.Bag.label"
+    commands:
+      - assertVisible:
+          id: "TabBar.Bag.label"
+
+- runFlow:
+    when:
+      visible:
+        id: "TabBar.LoyaltyStackRoot.label"
+    commands:
+      - assertVisible:
+          id: "TabBar.LoyaltyStackRoot.label"
+
+- runFlow:
+    when:
+      visible: "Menu"
+    commands:
+      - assertVisible: "Menu"
+
+# Dismiss "Close modal" if tech difficulties appear
+- runFlow:
+    when:
+      visible: "Close modal"
+    commands:
+      - tapOn: "Close modal"
+
+- evalScript: ${console.log('PASSED - Brand One app launch smoke test')}

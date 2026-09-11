@@ -1,0 +1,132 @@
+# ═══════════════════════════════════════════════════════════════
+#  Brand Three — Authenticated User Pickup Order (Credit Card)
+#
+#  Full critical-path E2E test:
+#    Launch → Sign In (with MFA) → Select Store → Menu →
+#    Add Item → Bag → Checkout → Select Stall →
+#    Credit Card Payment → Place Order → Verify Confirmation →
+#    Sign Out
+#
+#  NOTE: Authenticated checkout skips the guest contact info
+#  step since the user's profile info is pre-filled.
+#
+#  Run:
+#    maestro test flows/brand3/order/authenticated-pickup-order.yaml
+# ═══════════════════════════════════════════════════════════════
+
+appId: ${BUNDLE_ID}
+jsEngine: graaljs
+androidWebViewHierarchy: devtools
+tags:
+  - e2e
+  - brand3
+  - authenticated
+  - pickup
+  - order
+  - critical-path
+
+env:
+  BUNDLE_ID: com.example.brand3.uat
+  AUTH_EMAIL: "user@example.com"
+  AUTH_PASS: "replace_me"
+  AUTH_PHONE: "5555550100"
+  OTP_BRAND_CODE: "B3"
+  OTP_API_PREFIX: "b3-api"
+  LOCATION_QUERY: "00000"
+  LOCATION_ID: "1000"
+  MENU_CATEGORY_ID: "Breakfast"
+  PRODUCT_CATEGORY: "NationalBreakfastEntrees"
+  PRODUCT_ID: "BaconBreakfastBurrito"
+  CC_NAME: "plate master"
+  TEST_CC_NUMBER: "5555555555554444"
+  TEST_CC_EXPIRY: "0233"
+  TEST_CC_CVV: "444"
+  TEST_CC_ZIP: "00000"
+
+---
+
+# ══════════════════════════════════════════════════════════════
+# STEP 1: Launch App & Dismiss Dialogs
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+- takeScreenshot: screenshots/B3_AuthOrder_S01_Home_${output.RUN_ID}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 2: Sign In (with MFA)
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/sign-in.yaml
+
+# Verify signed in — wait for authenticated home screen
+- extendedWaitUntil:
+    visible:
+      id: "HomeScreen.ChangeLocationBtn"
+    timeout: 20000
+
+- takeScreenshot: screenshots/B3_AuthOrder_S02_SignedIn_${output.RUN_ID}
+- evalScript: ${console.log('Sign in successful')}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 3: Select Pickup Location (Store 1000)
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/select-location.yaml
+
+- takeScreenshot: screenshots/B3_AuthOrder_S03_Location_${output.RUN_ID}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 4: Select Category & Add Item to Bag
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/menu-add-item.yaml
+
+- takeScreenshot: screenshots/B3_AuthOrder_S04_ItemAdded_${output.RUN_ID}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 5: Open Bag & Start Checkout
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/open-bag-checkout.yaml
+
+- takeScreenshot: screenshots/B3_AuthOrder_S05_Checkout_${output.RUN_ID}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 6: Select Stall Pickup Option
+# ══════════════════════════════════════════════════════════════
+- runFlow:
+    when:
+      visible:
+        id: "Bag.Checkout.PickupLocation.Stall"
+    commands:
+      - tapOn:
+          id: "Bag.Checkout.PickupLocation.Stall"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+- takeScreenshot: screenshots/B3_AuthOrder_S06_Stall_${output.RUN_ID}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 7: Pay with Credit Card
+#   (Authenticated user — contact info is pre-filled from profile)
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/pay-credit-card.yaml
+
+- takeScreenshot: screenshots/B3_AuthOrder_S07_Payment_${output.RUN_ID}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 8: Place Order & Verify Confirmation
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/place-order-verify.yaml
+
+- takeScreenshot: screenshots/B3_AuthOrder_S08_Confirmed_${output.RUN_ID}
+- evalScript: ${console.log('PASSED - Brand Three Authenticated Pickup Order with Credit Card')}
+
+# ══════════════════════════════════════════════════════════════
+# STEP 9: Sign Out (clean up)
+# ══════════════════════════════════════════════════════════════
+- runFlow: ../../../shared/sign-out.yaml
+
+- takeScreenshot: screenshots/B3_AuthOrder_S09_SignedOut_${output.RUN_ID}
+- evalScript: ${console.log('PASSED - Full authenticated order flow complete')}
+
+# ══════════════════════════════════════════════════════════════
+# CLEANUP: Stop app
+# ══════════════════════════════════════════════════════════════
+- stopApp

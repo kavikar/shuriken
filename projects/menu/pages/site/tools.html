@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menu Tools &#x2014; Example QE</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --surface2: #242836;
+      --border: #2e3348; --text: #e4e6f0; --text2: #9ba1b8;
+      --accent: #6c63ff; --accent-hover: #7b73ff;
+      --green: #22c55e; --green-bg: rgba(34,197,94,0.1);
+      --red: #ef4444; --red-bg: rgba(239,68,68,0.1);
+      --yellow: #f59e0b; --yellow-bg: rgba(245,158,11,0.1);
+      --blue: #3b82f6; --blue-bg: rgba(59,130,246,0.1);
+      --purple: #8b5cf6; --purple-bg: rgba(139,92,246,0.1);
+      --radius: 10px; --shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    body { font-family: 'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; padding: 28px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+    .header h1 { font-size: 1.8rem; font-weight: 700; }
+    .header h1 span { color: var(--accent); }
+    .header p { color: var(--text2); margin-top: 4px; font-size: 0.92rem; }
+    .tool-panel { display: none; }
+    .tool-panel.active { display: block; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .card h2 { font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .form-group { flex: 1; min-width: 220px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+    .form-group label .hint { font-weight: 400; color: #555; font-size: 0.78rem; }
+    select, input[type="text"], textarea { width: 100%; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.92rem; font-family: inherit; transition: border-color 0.2s; }
+    select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; font-family: 'Consolas','Monaco',monospace; font-size: 0.85rem; line-height: 1.6; }
+    .tabs { display: flex; gap: 0; margin-bottom: 16px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+    .tab { flex: 1; padding: 10px 16px; text-align: center; cursor: pointer; background: var(--surface2); color: var(--text2); font-size: 0.88rem; font-weight: 500; transition: all 0.2s; border: none; }
+    .tab:hover { background: var(--border); }
+    .tab.active { background: var(--accent); color: #fff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .csv-drop { border: 2px dashed var(--border); border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; color: var(--text2); }
+    .csv-drop:hover, .csv-drop.dragover { border-color: var(--accent); background: rgba(108,99,255,0.05); }
+    .csv-drop input[type="file"] { display: none; }
+    .csv-preview { margin-top: 12px; font-size: 0.82rem; color: var(--green); font-family: monospace; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 12px rgba(108,99,255,0.3); }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-row { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--text2); font-size: 0.9rem; }
+    .progress-wrap { width: 100%; height: 6px; background: var(--surface2); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; width: 0%; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .summary-stat { background: var(--surface2); border-radius: 8px; padding: 16px; text-align: center; }
+    .summary-stat .value { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+    .summary-stat .label { font-size: 0.78rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { background: var(--surface2); padding: 10px 14px; text-align: left; font-weight: 600; color: var(--text2); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; }
+    td { padding: 8px 14px; border-bottom: 1px solid var(--border); font-family: 'Consolas','Monaco',monospace; font-size: 0.82rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(108,99,255,0.03); }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; font-family: 'Segoe UI',sans-serif; }
+    .badge-unmapped { background: var(--red-bg); color: var(--red); }
+    .badge-mapped { background: var(--green-bg); color: var(--green); }
+    .badge-error { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-new { background: rgba(108,99,255,0.1); color: var(--accent); }
+    .badge-virtual { background: var(--purple-bg); color: var(--purple); }
+    .badge-info { background: var(--blue-bg); color: var(--blue); }
+    .filter-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+    .filter-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; background: transparent; color: var(--text2); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+    .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+    .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .search-input { padding: 6px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; color: var(--text); font-size: 0.82rem; min-width: 200px; font-family: inherit; }
+    .search-input:focus { outline: none; border-color: var(--accent); }
+    .row-count { font-size: 0.78rem; color: var(--text2); margin-left: auto; }
+    .insight-banner { border-radius: 8px; padding: 14px 20px; margin-bottom: 16px; font-size: 0.88rem; line-height: 1.6; }
+    .insight-ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--green); }
+    .insight-warn { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--red); }
+    .insight-info { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); color: var(--blue); }
+    .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; color: var(--text2); }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(108,99,255,0.05); }
+    .upload-zone input[type="file"] { display: none; }
+    .hidden { display: none !important; }
+    .footer { text-align: center; padding: 24px 0; color: var(--text2); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 32px; }
+    .ctx-pill { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; font-family: monospace; cursor: pointer; transition: all 0.15s; border: 1.5px solid var(--yellow); background: rgba(245,158,11,0.08); color: var(--yellow); margin: 3px; }
+    .ctx-pill.active { background: var(--yellow); color: #000; }
+    .mode-toggle { display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 16px; }
+    .mode-toggle .mode-btn { flex: 1; padding: 10px 16px; text-align: center; cursor: pointer; background: var(--surface2); color: var(--text2); font-size: 0.88rem; font-weight: 500; transition: all 0.2s; border: none; font-family: inherit; }
+    .mode-toggle .mode-btn.active { background: var(--accent); color: #fff; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;font-size:0.88rem;margin-bottom:8px;font-weight:500;">&#x2190; Back to Menu Tools</a>
+
+  <div class="header">
+    <h1><span>Menu</span> Tools</h1>
+    <p>Example Corp &#x2014; Quality Engineering Menu Validation Suite</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!--  TOOL 1: UNMAPPED PRODUCT CHECKER                          -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="tool-panel" id="panel-unmapped">
+    <div class="card">
+      <h2>&#x1F50D; Unmapped Product Checker</h2>
+      <p style="color:var(--text2);font-size:0.88rem;margin-bottom:16px;">Validate product IDs against MenuApi&#x2019;s unmapped_items API</p>
+      <div class="form-row">
+        <div class="form-group" style="flex:0 0 280px;">
+          <label>Brand</label>
+          <select id="um-brand">
+            <option value="B1">B1 &#x2014; Brand One</option>
+            <option value="B3">B3 &#x2014; Brand Three</option>
+            <option value="B2">B2 &#x2014; Brand Two</option>
+          </select>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="um-manual" onclick="switchInnerTab(this,'um-manual')">&#x270F;&#xFE0F; Manual Entry</button>
+        <button class="tab" data-tab="um-csv" onclick="switchInnerTab(this,'um-csv')">&#x1F4C4; CSV Upload</button>
+      </div>
+      <div class="tab-content active" id="tab-um-manual">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label>Location IDs <span class="hint">&#x2014; comma or space separated</span></label>
+          <input type="text" id="um-locations" placeholder="e.g. 10092, 10093, 10094">
+        </div>
+        <div class="form-group">
+          <label>Product IDs <span class="hint">&#x2014; comma or newline separated</span></label>
+          <textarea id="um-products" rows="4" placeholder="e.g. shamrock-farms-lowfat-chocolate-milk-dc0e0574"></textarea>
+        </div>
+      </div>
+      <div class="tab-content" id="tab-um-csv">
+        <div class="csv-drop" id="um-csvDrop" onclick="document.getElementById('um-csvFile').click()">
+          <div style="font-size:2rem;margin-bottom:8px;">&#x1F4C2;</div>
+          <div>Drop CSV here or <strong>click to browse</strong></div>
+          <div style="font-size:0.8rem;margin-top:4px;">Expects column: location_id (location-only CSV)</div>
+          <input type="file" id="um-csvFile" accept=".csv,.txt" onchange="umHandleCSV(event)">
+          <div class="csv-preview" id="um-csvPreview"></div>
+        </div>
+        <div class="form-group" style="margin-top:16px;">
+          <label>Product IDs <span class="hint">&#x2014; required for CSV mode</span></label>
+          <textarea id="um-csvProducts" rows="3" placeholder="e.g. coca-cola-classic-abc12345"></textarea>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:20px;">
+        <button class="btn btn-primary" id="um-checkBtn" onclick="umRunCheck()">&#x1F50D; Check Unmapped</button>
+        <button class="btn btn-secondary" onclick="umClear()">Clear</button>
+      </div>
+    </div>
+    <div class="card hidden" id="um-loading">
+      <div style="display:flex;align-items:center;gap:12px;"><div class="spinner"></div><span class="loading-text" id="um-loadingText">Checking... 0%</span></div>
+      <div class="progress-wrap"><div class="progress-bar" id="um-progress"></div></div>
+    </div>
+    <div class="hidden" id="um-results">
+      <div class="card">
+        <h2>Summary</h2>
+        <div class="summary-grid">
+          <div class="summary-stat"><div class="value" id="um-statTotal" style="color:var(--accent)">0</div><div class="label">Total Checks</div></div>
+          <div class="summary-stat"><div class="value" id="um-statUnmapped" style="color:var(--red)">0</div><div class="label">Unmapped</div></div>
+          <div class="summary-stat"><div class="value" id="um-statLocations" style="color:var(--yellow)">0</div><div class="label">Locations</div></div>
+        </div>
+        <div style="font-size:0.82rem;color:var(--text2);">Brand: <strong id="um-resultBrand"></strong> | <span id="um-resultTime"></span></div>
+      </div>
+      <div class="card">
+        <h2>Results</h2>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="umFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="umFilter('unmapped',this)">&#x1F534; Unmapped Only</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Location</th><th>Product ID</th><th>Status</th><th>Unmapped at Loc</th><th>API</th></tr></thead><tbody id="um-tbody"></tbody></table></div>
+        <div class="btn-row" style="margin-top:16px;">
+          <button class="btn btn-secondary" onclick="umExport()">&#x1F4E5; Export CSV</button>
+          <button class="btn btn-secondary" onclick="umCopy(this)">&#x1F4CB; Copy Table</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!--  TOOL 2: MENU DELTA ANALYZER                               -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="tool-panel" id="panel-analyzer">
+    <div class="card">
+      <h2>&#x1F4CA; Menu Delta Analyzer</h2>
+      <p style="color:var(--text2);font-size:0.88rem;margin-bottom:16px;">Compare PROD vs UAT IDP menus &#x2014; products, display names, prices, flags, calories</p>
+
+      <!-- Brand selector -->
+      <div class="form-row">
+        <div class="form-group" style="flex:0 0 280px;">
+          <label>Brand</label>
+          <select id="da-brand" onchange="daUpdateStoreMap()">
+            <option value="B2">B2 &#x2014; Brand Two</option>
+            <option value="B1">B1 &#x2014; Brand One</option>
+            <option value="B3">B3 &#x2014; Brand Three</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Input mode toggle -->
+      <div class="mode-toggle">
+        <button class="mode-btn active" onclick="daSetMode('live',this)">&#x1F4E1; Live API</button>
+        <button class="mode-btn" onclick="daSetMode('upload',this)">&#x1F4E4; Upload JSON</button>
+      </div>
+
+      <!-- Live mode inputs -->
+      <div id="da-live-inputs">
+        <div class="form-row">
+          <div class="form-group">
+            <label>PROD Store ID</label>
+            <input type="text" id="da-prodStore" placeholder="e.g. 114" oninput="daAutoFillUat()">
+          </div>
+          <div class="form-group">
+            <label>UAT Store ID <span class="hint">&#x2014; auto-resolved if mapped</span></label>
+            <input type="text" id="da-uatStore" placeholder="auto or manual" oninput="daAutoFillProd()">
+          </div>
+        </div>
+        <div style="font-size:0.8rem;color:var(--text2);margin-bottom:16px;" id="da-storeMapHint"></div>
+      </div>
+
+      <!-- Upload mode inputs -->
+      <div id="da-upload-inputs" class="hidden">
+        <div class="form-row">
+          <div class="form-group">
+            <label>PROD Menu JSON</label>
+            <div class="upload-zone" id="da-prod-drop" onclick="document.getElementById('da-prod-file').click()">
+              <div style="font-size:1.5rem;margin-bottom:4px;">&#x1F4C4;</div>
+              <div>Click or drag PROD JSON</div>
+              <div id="da-prod-file-name" class="hidden" style="color:var(--green);font-size:0.82rem;margin-top:4px;"></div>
+              <input type="file" id="da-prod-file" accept=".json,.txt" onchange="daHandleFile('prod',this)">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>UAT Menu JSON</label>
+            <div class="upload-zone" id="da-uat-drop" onclick="document.getElementById('da-uat-file').click()">
+              <div style="font-size:1.5rem;margin-bottom:4px;">&#x1F4C4;</div>
+              <div>Click or drag UAT JSON</div>
+              <div id="da-uat-file-name" class="hidden" style="color:var(--green);font-size:0.82rem;margin-top:4px;"></div>
+              <input type="file" id="da-uat-file" accept=".json,.txt" onchange="daHandleFile('uat',this)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="da-runBtn" onclick="daRun()">&#x1F4CA; Analyze Menu Delta</button>
+        <button class="btn btn-secondary" onclick="daClear()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="card hidden" id="da-loading">
+      <div style="display:flex;align-items:center;gap:12px;"><div class="spinner"></div><span class="loading-text" id="da-loadingText">Fetching menus...</span></div>
+      <div class="progress-wrap"><div class="progress-bar" id="da-progress"></div></div>
+    </div>
+
+    <!-- Error -->
+    <div class="hidden" id="da-error">
+      <div class="card" style="border-color:var(--red);">
+        <h2 style="color:var(--red);">Analysis Failed</h2>
+        <pre id="da-errorMsg" style="color:var(--red);white-space:pre-wrap;font-size:0.85rem;"></pre>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="hidden" id="da-results">
+      <div class="card">
+        <h2>Delta Summary</h2>
+        <div class="summary-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
+          <div class="summary-stat"><div class="value" id="da-prodCount" style="color:var(--accent)">0</div><div class="label">PROD Products</div></div>
+          <div class="summary-stat"><div class="value" id="da-uatCount" style="color:var(--green)">0</div><div class="label">UAT Products</div></div>
+          <div class="summary-stat"><div class="value" id="da-newInUat" style="color:var(--blue)">0</div><div class="label">New in UAT</div></div>
+          <div class="summary-stat"><div class="value" id="da-missingInUat" style="color:var(--red)">0</div><div class="label">Missing from UAT</div></div>
+          <div class="summary-stat"><div class="value" id="da-nameChanges" style="color:var(--purple)">0</div><div class="label">Name Changes</div></div>
+          <div class="summary-stat"><div class="value" id="da-priceChanges" style="color:var(--yellow)">0</div><div class="label">Price Diffs</div></div>
+          <div class="summary-stat"><div class="value" id="da-flagChanges" style="color:var(--red)">0</div><div class="label">Flag Diffs</div></div>
+        </div>
+        <div style="font-size:0.82rem;color:var(--text2);">Brand: <strong id="da-resultBrand"></strong> | PROD: <span id="da-resultProd"></span> | UAT: <span id="da-resultUat"></span></div>
+      </div>
+      <div class="card" id="da-deltaCard">
+        <h2>Delta Products</h2>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="daFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="daFilter('new',this)">&#x1F7E2; New in UAT</button>
+          <button class="filter-btn" onclick="daFilter('missing',this)">&#x1F534; Missing</button>
+          <button class="filter-btn" onclick="daFilter('namechange',this)">&#x270F;&#xFE0F; Name</button>
+          <button class="filter-btn" onclick="daFilter('pricechange',this)">&#x1F4B0; Price</button>
+          <button class="filter-btn" onclick="daFilter('flagchange',this)">&#x1F6A9; Flags</button>
+          <input type="text" class="search-input" id="da-search" placeholder="Search products..." oninput="daApplyFilters()">
+          <span class="row-count" id="da-rowCount"></span>
+        </div>
+        <div class="table-wrap" style="max-height:65vh;overflow-y:auto;"><table><thead><tr>
+          <th>#</th><th>Product Key</th><th>Display Name</th><th>Category</th>
+          <th>PROD Price</th><th>UAT Price</th><th>Calories</th>
+          <th>Virtual</th><th>Recipe</th><th>Status</th>
+        </tr></thead><tbody id="da-tbody"></tbody></table></div>
+        <div class="btn-row" style="margin-top:16px;">
+          <button class="btn btn-secondary" onclick="daExport()">&#x1F4E5; Export CSV</button>
+          <button class="btn btn-secondary" onclick="daCopy(this)">&#x1F4CB; Copy Table</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!--  TOOL 3: MENU MAPPING VALIDATOR                             -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="tool-panel" id="panel-mapper">
+    <div class="card">
+      <h2>&#x1F5FA;&#xFE0F; Menu Mapping Validator</h2>
+      <p style="color:var(--text2);font-size:0.88rem;margin-bottom:16px;">Validate product POS-ID mappings between Location Menu and Master Menu via MenuApi API. Tracks virtual products, contextual mappings, and brand-specific fields.</p>
+      <div class="form-row">
+        <div class="form-group" style="flex:0 0 280px;">
+          <label>Brand</label>
+          <select id="mv-brand" onchange="mvUpdateHint()">
+            <option value="B1">B1 &#x2014; Brand One</option>
+            <option value="B2">B2 &#x2014; Brand Two</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Location ID</label>
+          <input type="text" id="mv-location" placeholder="e.g. 1000">
+        </div>
+      </div>
+      <div id="mv-brandHint" style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="mv-runBtn" onclick="mvRun()">&#x1F5FA;&#xFE0F; Validate Mapping</button>
+        <button class="btn btn-secondary" onclick="mvClear()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="card hidden" id="mv-loading">
+      <div style="display:flex;align-items:center;gap:12px;"><div class="spinner"></div><span class="loading-text" id="mv-loadingText">Fetching menus from MenuApi...</span></div>
+      <div class="progress-wrap"><div class="progress-bar" id="mv-progress"></div></div>
+    </div>
+
+    <!-- Results -->
+    <div class="hidden" id="mv-results">
+      <!-- Insight banner -->
+      <div id="mv-insight" class="insight-banner" style="display:none;"></div>
+
+      <!-- Summary stats -->
+      <div class="card">
+        <h2>Mapping Summary</h2>
+        <div class="summary-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">
+          <div class="summary-stat"><div class="value" id="mv-totalCount" style="color:var(--accent)">0</div><div class="label">Total Products</div></div>
+          <div class="summary-stat"><div class="value" id="mv-mappedCount" style="color:var(--green)">0</div><div class="label">Mapped</div></div>
+          <div class="summary-stat"><div class="value" id="mv-realUnmapped" style="color:var(--red)">0</div><div class="label">Real Unmapped</div></div>
+          <div class="summary-stat"><div class="value" id="mv-virtualCount" style="color:var(--purple)">0</div><div class="label">Virtual (No POS)</div></div>
+          <div class="summary-stat"><div class="value" id="mv-contextualCount" style="color:var(--yellow)">0</div><div class="label">Contextual</div></div>
+        </div>
+        <div style="font-size:0.82rem;color:var(--text2);">Brand: <strong id="mv-resultBrand"></strong> | Location: <span id="mv-resultLoc"></span></div>
+      </div>
+
+      <!-- Products table -->
+      <div class="card">
+        <h2>All Products</h2>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="mvFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="mvFilter('mapped',this)">&#x2705; Mapped</button>
+          <button class="filter-btn" onclick="mvFilter('unmapped',this)">&#x1F534; Real Unmapped</button>
+          <button class="filter-btn" onclick="mvFilter('virtual',this)">&#x1F3F7;&#xFE0F; Virtual</button>
+          <button class="filter-btn" onclick="mvFilter('contextual',this)">&#x1F517; Contextual</button>
+          <input type="text" class="search-input" id="mv-search" placeholder="Search by ID, name, POS ID..." oninput="mvApplyFilters()">
+          <span class="row-count" id="mv-rowCount"></span>
+        </div>
+        <div class="table-wrap" style="max-height:65vh;overflow-y:auto;">
+          <table><thead id="mv-thead"></thead><tbody id="mv-tbody"></tbody></table>
+        </div>
+        <div class="btn-row" style="margin-top:16px;">
+          <button class="btn btn-secondary" onclick="mvExport()">&#x1F4E5; Export CSV</button>
+          <button class="btn btn-secondary" onclick="mvCopy(this)">&#x1F4CB; Copy Table</button>
+        </div>
+      </div>
+
+      <!-- Contextual mappings -->
+      <div class="card hidden" id="mv-contextual-section">
+        <h2>&#x1F517; Contextual Mappings</h2>
+        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:12px;">Products mapped via a <strong>parent#child</strong> key. Click a pill to filter.</p>
+        <div id="mv-ctx-pills" style="margin-bottom:16px;"></div>
+        <div class="table-wrap" style="max-height:50vh;overflow-y:auto;">
+          <table><thead id="mv-ctx-thead"></thead><tbody id="mv-ctx-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Example Corp &#x2014; Quality Engineering &#x00A0;|&#x00A0; Menu Tools v3.0 &#x00A0;|&#x00A0; GitLab Pages</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  SHARED UTILITIES
+// ════════════════════════════════════════════════════════════════
+var MENU_API_BASE = 'https://menu-api.example/api/v1';
+var MENU_API_TOKEN = 'REPLACE_ME_TOKEN';
+var MENU_API_FALLBACK = 'http://localhost:5000';
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function parseInput(raw) { return raw.split(/[,\s\n]+/).map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}); }
+
+function switchInnerTab(btn, tabId) {
+  var card = btn.closest('.card');
+  card.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  card.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
+  btn.classList.add('active');
+  var el = document.getElementById('tab-' + tabId);
+  if (el) el.classList.add('active');
+}
+
+function switchTool(id) {
+  document.querySelectorAll('.tool-panel').forEach(function(p){p.classList.remove('active');});
+  var panel = document.getElementById('panel-' + id);
+  if (panel) panel.classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  TOOL 1: UNMAPPED PRODUCT CHECKER
+// ════════════════════════════════════════════════════════════════
+var umResults = null, umCsvLocs = [], umCsvProds = [], umRunStartedAt = null;
+
+(function(){
+  var drop = document.getElementById('um-csvDrop');
+  if (!drop) return;
+  drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', function(){ drop.classList.remove('dragover'); });
+  drop.addEventListener('drop', function(e){ e.preventDefault(); drop.classList.remove('dragover'); if(e.dataTransfer.files[0]) umParseCSV(e.dataTransfer.files[0]); });
+})();
+
+function umHandleCSV(ev) { if (ev.target.files[0]) umParseCSV(ev.target.files[0]); }
+
+function umParseCSV(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var lines = e.target.result.trim().split('\n');
+    if (lines.length < 2) { document.getElementById('um-csvPreview').textContent = 'Need header + 1 row'; return; }
+    var header = lines[0].split(',').map(function(h){return h.trim().toLowerCase();});
+    var locIdx = header.findIndex(function(h){return ['location_id','store_id','loc_id','location','store'].indexOf(h) >= 0;});
+    if (locIdx === -1) { document.getElementById('um-csvPreview').textContent = 'No location column found: ' + header.join(', '); return; }
+    umCsvLocs = []; umCsvProds = [];
+    for (var i = 1; i < lines.length; i++) {
+      var cols = lines[i].split(',').map(function(c){return c.trim();});
+      if (cols[locIdx]) { umCsvLocs.push(cols[locIdx]); }
+    }
+    var uniqLocs = []; umCsvLocs.forEach(function(l){if(uniqLocs.indexOf(l)<0)uniqLocs.push(l);});
+    document.getElementById('um-csvPreview').textContent = umCsvLocs.length + ' rows | ' + uniqLocs.length + ' locations | enter Product IDs below';
+  };
+  reader.readAsText(file);
+}
+
+function umFormatDuration(ms) {
+  var sec = Math.round(ms / 1000);
+  if (sec < 60) return sec + 's';
+  var min = Math.floor(sec / 60);
+  var rem = sec % 60;
+  return min + 'm ' + rem + 's';
+}
+
+function umFetch(locId, brand) {
+  var params = new URLSearchParams({ location_id: String(locId || '').trim(), event_type: 'unavailable_products' });
+  var path = '/api/' + encodeURIComponent(brand) + '/unmapped/live?' + params.toString();
+
+  function parsePayload(res) {
+    if (!res || res.status !== 'success') {
+      var statusCode = (res && res.http_status) ? res.http_status : 500;
+      throw new Error('HTTP ' + statusCode);
+    }
+    return res.body || {};
+  }
+
+  return fetch(path, { headers: { 'Accept': 'application/json' } })
+    .then(function(r){ return r.json(); })
+    .then(parsePayload)
+    .catch(function(){
+      // Fallback for static-server usage where /api is not hosted on the same origin.
+      return fetch(MENU_API_FALLBACK + path, { headers: { 'Accept': 'application/json' } })
+        .then(function(r){ return r.json(); })
+        .then(parsePayload);
+    });
+}
+
+function umRunCheck() {
+  var brand = document.getElementById('um-brand').value;
+  var activeTabEl = document.querySelector('#panel-unmapped .tab.active');
+  var activeTab = activeTabEl ? activeTabEl.dataset.tab : 'um-manual';
+  var locations, products;
+  if (activeTab === 'um-csv') {
+    if (!umCsvLocs.length) { alert('Upload a CSV first.'); return; }
+    var uniq = []; umCsvLocs.forEach(function(l){if(uniq.indexOf(l)<0)uniq.push(l);});
+    locations = uniq;
+    products = parseInput(document.getElementById('um-csvProducts').value);
+    if (!products.length) { alert('CSV mode requires Product IDs in the textbox below.'); return; }
+  } else {
+    locations = parseInput(document.getElementById('um-locations').value);
+    products = parseInput(document.getElementById('um-products').value);
+  }
+  if (!locations.length) { alert('Enter at least one location.'); return; }
+  if (!products.length) { alert('Enter at least one product.'); return; }
+
+  document.getElementById('um-checkBtn').disabled = true;
+  document.getElementById('um-loading').classList.remove('hidden');
+  document.getElementById('um-results').classList.add('hidden');
+  document.getElementById('um-progress').style.width = '0%';
+  document.getElementById('um-loadingText').textContent = 'Checking... 0%';
+  umRunStartedAt = performance.now();
+
+  var cache = {};
+  var idx = 0;
+  function next() {
+    if (idx >= locations.length) { finish(); return; }
+    var loc = locations[idx];
+    var pct = Math.round(((idx + 1) / locations.length) * 100);
+    document.getElementById('um-progress').style.width = pct + '%';
+    document.getElementById('um-loadingText').textContent = 'Fetching location ' + (idx+1) + '/' + locations.length + ' (' + loc + ')... ' + pct + '%';
+    umFetch(loc, brand).then(function(d){
+      var items = (d.unmapped_items || []).map(String);
+      var s = {}; items.forEach(function(i){s[i]=true;});
+      cache[loc] = { set: s, status: 'OK', count: items.length };
+    }).catch(function(e){
+      cache[loc] = { set: {}, status: e.message, count: 0 };
+    }).finally(function(){
+      idx++;
+      next();
+    });
+  }
+
+  function finish() {
+    var results = [];
+    locations.forEach(function(loc){
+      products.forEach(function(prod){
+        results.push({ location_id: loc, product_id: prod, is_unmapped: !!cache[loc].set[prod], unmapped_count: cache[loc].count, api_status: cache[loc].status });
+      });
+    });
+    var unmapped = results.filter(function(r){return r.is_unmapped;}).length;
+    umResults = { results: results, summary: { total_checks: results.length, unmapped: unmapped, locations_checked: locations.length, brand: brand, timestamp: new Date().toISOString() } };
+    document.getElementById('um-statTotal').textContent = results.length;
+    document.getElementById('um-statUnmapped').textContent = unmapped;
+    document.getElementById('um-statLocations').textContent = locations.length;
+    document.getElementById('um-resultBrand').textContent = brand;
+    var elapsed = umRunStartedAt ? (performance.now() - umRunStartedAt) : 0;
+    document.getElementById('um-resultTime').textContent = new Date().toLocaleString() + ' | Time taken: ' + umFormatDuration(elapsed);
+    document.getElementById('um-loadingText').textContent = 'Completed 100%';
+    document.getElementById('um-progress').style.width = '100%';
+    umRenderTable(results);
+    document.getElementById('um-results').classList.remove('hidden');
+    document.getElementById('um-results').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('um-checkBtn').disabled = false;
+    document.getElementById('um-loading').classList.add('hidden');
+  }
+  next();
+}
+
+function umRenderTable(results) {
+  document.getElementById('um-tbody').innerHTML = results.map(function(r,i){
+    return '<tr><td>'+(i+1)+'</td><td>'+esc(r.location_id)+'</td><td style="max-width:400px;word-break:break-all;">'+esc(r.product_id)+'</td><td><span class="badge '+(r.is_unmapped?'badge-unmapped':'')+'">'+(r.is_unmapped?'UNMAPPED':'&#x2014;')+'</span></td><td>'+r.unmapped_count+'</td><td><span class="badge '+(r.api_status==='OK'?'badge-mapped':'badge-error')+'">'+esc(r.api_status)+'</span></td></tr>';
+  }).join('');
+}
+
+function umFilter(f, btn) {
+  btn.closest('.filter-row').querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  if (!umResults) return;
+  var d = umResults.results;
+  if (f === 'unmapped') d = d.filter(function(r){return r.is_unmapped;});
+  umRenderTable(d);
+}
+
+function umExport() {
+  if (!umResults) return;
+  var h = ['location_id','product_id','is_unmapped','unmapped_count','api_status'];
+  var csv = [h.join(',')].concat(umResults.results.map(function(r){return h.map(function(k){return r[k];}).join(',');})).join('\n');
+  var b = new Blob([csv],{type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = 'unmapped_' + umResults.summary.brand + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+function umCopy(btn) {
+  if (!umResults) return;
+  var lines = umResults.results.map(function(r){return r.location_id+'\t'+r.product_id+'\t'+(r.is_unmapped?'UNMAPPED':'MAPPED')+'\t'+r.unmapped_count+'\t'+r.api_status;});
+  navigator.clipboard.writeText('Location\tProduct\tStatus\tCount\tAPI\n'+lines.join('\n')).then(function(){
+    btn.textContent = 'Copied!'; setTimeout(function(){btn.textContent = '\u{1F4CB} Copy Table';}, 1500);
+  });
+}
+
+function umClear() {
+  document.getElementById('um-locations').value = '';
+  document.getElementById('um-products').value = '';
+  document.getElementById('um-csvProducts').value = '';
+  document.getElementById('um-csvPreview').textContent = '';
+  document.getElementById('um-csvFile').value = '';
+  document.getElementById('um-results').classList.add('hidden');
+  umCsvLocs = []; umCsvProds = []; umResults = null;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  TOOL 2: MENU DELTA ANALYZER
+// ════════════════════════════════════════════════════════════════
+var DA_BRANDS = {
+  B2: { name:'Brand Two', prodUrl:'https://api.brand2.example/menu/{id}', uatUrl:'https://menu2-b2.staging.staging.example/{id}',
+    prodHeaders:{'x-channel':'WEBOA','origin':'https://www.brand2.example','referer':'https://www.brand2.example/'},
+    uatHeaders:{'x-channel':'WEBOA','origin':'https://ignite-b2.uat.staging.example','referer':'https://ignite-b2.uat.staging.example/'},
+    storeMap:{'12':'5','114':'4','1619':'3'} },
+  B1: { name:"Brand One", prodUrl:'https://api.brand1.example/menu/{id}', uatUrl:'https://menu2-b1.uat.staging.example/{id}',
+    prodHeaders:{'x-channel':'WEBOA','origin':'https://www.brand1.example','referer':'https://www.brand1.example/'},
+    uatHeaders:{'x-channel':'WEBOA','origin':'https://ignite-Brand One.uat.staging.example','referer':'https://ignite-Brand One.uat.staging.example/'},
+    storeMap:{'1001':'1000','1000':'1000','6796':'1000'} },
+  B3: { name:'Brand Three', prodUrl:'https://api.brand3.example/menu/{id}', uatUrl:'https://menu2-b3.uat.staging.example/{id}',
+    prodHeaders:{'x-channel':'WEBOA','origin':'https://www.brand3.example','referer':'https://www.brand3.example/'},
+    uatHeaders:{'x-channel':'WEBOA','origin':'https://ignite-b3.uat.staging.example','referer':'https://ignite-b3.uat.staging.example/'},
+    storeMap:{} }
+};
+
+var daMode = 'live', daProdFileData = null, daUatFileData = null, daAllResults = [], daFilteredResults = [], daActiveFilter = 'all';
+
+function daSetMode(mode, btn) {
+  daMode = mode;
+  btn.closest('.mode-toggle').querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('da-live-inputs').classList.toggle('hidden', mode !== 'live');
+  document.getElementById('da-upload-inputs').classList.toggle('hidden', mode !== 'upload');
+}
+
+function daHandleFile(which, input) {
+  var file = input.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var json = JSON.parse(e.target.result);
+      if (which === 'prod') daProdFileData = json; else daUatFileData = json;
+      var nameEl = document.getElementById('da-' + which + '-file-name');
+      nameEl.textContent = file.name; nameEl.classList.remove('hidden');
+    } catch(err) { alert('Invalid JSON file: ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function daUpdateStoreMap() {
+  var brand = document.getElementById('da-brand').value;
+  var cfg = DA_BRANDS[brand];
+  var entries = Object.entries(cfg.storeMap);
+  document.getElementById('da-storeMapHint').textContent = entries.length ? 'Store map: ' + entries.map(function(e){return 'PROD '+e[0]+' \u2192 UAT '+e[1];}).join(', ') : 'No pre-configured store map \u2014 enter both IDs manually';
+}
+
+function daAutoFillUat() {
+  var brand = document.getElementById('da-brand').value;
+  var prodId = document.getElementById('da-prodStore').value.trim();
+  var cfg = DA_BRANDS[brand];
+  if (cfg.storeMap[prodId]) {
+    document.getElementById('da-uatStore').value = cfg.storeMap[prodId];
+    document.getElementById('da-storeMapHint').textContent = 'Auto-mapped PROD ' + prodId + ' \u2192 UAT ' + cfg.storeMap[prodId];
+  }
+}
+
+function daAutoFillProd() {
+  var brand = document.getElementById('da-brand').value;
+  var uatId = document.getElementById('da-uatStore').value.trim();
+  var cfg = DA_BRANDS[brand];
+  for (var p in cfg.storeMap) { if (cfg.storeMap[p] === uatId) { document.getElementById('da-prodStore').value = p; document.getElementById('da-storeMapHint').textContent = 'Auto-mapped UAT ' + uatId + ' \u2192 PROD ' + p; return; } }
+}
+
+function daExtractProducts(menuJson) {
+  var products = {};
+  try {
+    var data = menuJson.data || menuJson;
+    var prods = data.products || data.menuProducts || {};
+    for (var key in prods) {
+      if (!prods.hasOwnProperty(key)) continue;
+      var val = prods[key];
+      products[key] = {
+        key: key, displayName: val.displayName || val.name || key,
+        category: val.category || '', isVirtual: !!val.isVirtual,
+        isRecipe: !!val.isRecipe, price: val.price != null ? val.price : null,
+        calories: val.calories != null ? val.calories : null
+      };
+    }
+  } catch(e) { /* fallback */ }
+  return products;
+}
+
+function daFetchMenu(url, headers) {
+  return fetch(url, { headers: Object.assign({'Accept':'application/json'}, headers) })
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status+' from '+url); return r.json(); });
+}
+
+function daRun() {
+  var brand = document.getElementById('da-brand').value;
+  var cfg = DA_BRANDS[brand];
+
+  document.getElementById('da-error').classList.add('hidden');
+  document.getElementById('da-results').classList.add('hidden');
+  document.getElementById('da-runBtn').disabled = true;
+  document.getElementById('da-loading').classList.remove('hidden');
+  document.getElementById('da-progress').style.width = '0%';
+
+  if (daMode === 'upload') {
+    if (!daProdFileData || !daUatFileData) { alert('Please upload both PROD and UAT JSON files.'); resetDaLoading(); return; }
+    document.getElementById('da-loadingText').textContent = 'Comparing uploaded menus...';
+    document.getElementById('da-progress').style.width = '50%';
+    setTimeout(function(){ daCompare(daProdFileData, daUatFileData, brand, 'uploaded', 'uploaded'); }, 50);
+    return;
+  }
+
+  var prodStore = document.getElementById('da-prodStore').value.trim();
+  if (!prodStore) { alert('Enter a PROD Store ID'); resetDaLoading(); return; }
+  var uatStore = document.getElementById('da-uatStore').value.trim();
+  if (!uatStore) uatStore = cfg.storeMap[prodStore] || '';
+  if (!uatStore) { alert('Enter a UAT Store ID (no auto-mapping for this PROD store)'); resetDaLoading(); return; }
+
+  document.getElementById('da-loadingText').textContent = 'Fetching PROD menu...';
+  document.getElementById('da-progress').style.width = '25%';
+
+  daFetchMenu(cfg.prodUrl.replace('{id}', prodStore), cfg.prodHeaders).then(function(prodJson) {
+    document.getElementById('da-loadingText').textContent = 'Fetching UAT menu...';
+    document.getElementById('da-progress').style.width = '50%';
+    return daFetchMenu(cfg.uatUrl.replace('{id}', uatStore), cfg.uatHeaders).then(function(uatJson) {
+      daCompare(prodJson, uatJson, brand, prodStore, uatStore);
+    });
+  }).catch(function(e) {
+    document.getElementById('da-errorMsg').textContent = e.message;
+    document.getElementById('da-error').classList.remove('hidden');
+    resetDaLoading();
+  });
+}
+
+function resetDaLoading() {
+  document.getElementById('da-runBtn').disabled = false;
+  document.getElementById('da-loading').classList.add('hidden');
+}
+
+function daCompare(prodJson, uatJson, brand, prodStore, uatStore) {
+  document.getElementById('da-loadingText').textContent = 'Comparing menus...';
+  document.getElementById('da-progress').style.width = '75%';
+
+  var prodProds = daExtractProducts(prodJson);
+  var uatProds = daExtractProducts(uatJson);
+  var prodKeys = Object.keys(prodProds);
+  var uatKeys = Object.keys(uatProds);
+
+  var normalize = function(k) { return k.replace(/-[a-f0-9]{8}$/, ''); };
+  var prodNorm = {}; prodKeys.forEach(function(k){ prodNorm[normalize(k)] = k; });
+  var uatNorm = {}; uatKeys.forEach(function(k){ uatNorm[normalize(k)] = k; });
+
+  var results = [];
+  // New in UAT
+  for (var nk in uatNorm) {
+    if (!prodNorm[nk]) {
+      var k = uatNorm[nk], p = uatProds[k];
+      results.push({ key: k, displayName: p.displayName, category: p.category, prodPrice: null, uatPrice: p.price, calories: p.calories, isVirtual: p.isVirtual, isRecipe: p.isRecipe, status: 'new', label: 'New in UAT' });
+    }
+  }
+  // Missing from UAT
+  for (var nk2 in prodNorm) {
+    if (!uatNorm[nk2]) {
+      var k2 = prodNorm[nk2], p2 = prodProds[k2];
+      results.push({ key: k2, displayName: p2.displayName, category: p2.category, prodPrice: p2.price, uatPrice: null, calories: p2.calories, isVirtual: p2.isVirtual, isRecipe: p2.isRecipe, status: 'missing', label: 'Missing from UAT' });
+    }
+  }
+  // Matched — check name, price, flag diffs
+  for (var nk3 in prodNorm) {
+    if (uatNorm[nk3]) {
+      var pk = prodNorm[nk3], uk = uatNorm[nk3];
+      var pp = prodProds[pk], up = uatProds[uk];
+      var pn = (pp.displayName||'').trim().toUpperCase(), un = (up.displayName||'').trim().toUpperCase();
+      var nameDiff = pn !== un;
+      var priceDiff = pp.price != null && up.price != null && parseFloat(pp.price) !== parseFloat(up.price);
+      var flagDiff = pp.isVirtual !== up.isVirtual || pp.isRecipe !== up.isRecipe;
+      if (nameDiff) {
+        results.push({ key: pk, displayName: 'PROD: '+pp.displayName+' \u2192 UAT: '+up.displayName, category: pp.category, prodPrice: pp.price, uatPrice: up.price, calories: pp.calories, isVirtual: pp.isVirtual, isRecipe: pp.isRecipe, status: 'namechange', label: 'Name Changed' });
+      }
+      if (priceDiff) {
+        results.push({ key: pk, displayName: pp.displayName, category: pp.category, prodPrice: pp.price, uatPrice: up.price, calories: pp.calories, isVirtual: pp.isVirtual, isRecipe: pp.isRecipe, status: 'pricechange', label: 'Price Diff' });
+      }
+      if (flagDiff) {
+        var flagLabel = '';
+        if (pp.isVirtual !== up.isVirtual) flagLabel += 'Virtual: '+pp.isVirtual+'\u2192'+up.isVirtual+' ';
+        if (pp.isRecipe !== up.isRecipe) flagLabel += 'Recipe: '+pp.isRecipe+'\u2192'+up.isRecipe;
+        results.push({ key: pk, displayName: pp.displayName + ' ('+flagLabel.trim()+')', category: pp.category, prodPrice: pp.price, uatPrice: up.price, calories: pp.calories, isVirtual: pp.isVirtual, isRecipe: pp.isRecipe, status: 'flagchange', label: 'Flag Diff' });
+      }
+    }
+  }
+
+  document.getElementById('da-progress').style.width = '100%';
+  daAllResults = results;
+  document.getElementById('da-prodCount').textContent = prodKeys.length;
+  document.getElementById('da-uatCount').textContent = uatKeys.length;
+  document.getElementById('da-newInUat').textContent = results.filter(function(r){return r.status==='new';}).length;
+  document.getElementById('da-missingInUat').textContent = results.filter(function(r){return r.status==='missing';}).length;
+  document.getElementById('da-nameChanges').textContent = results.filter(function(r){return r.status==='namechange';}).length;
+  document.getElementById('da-priceChanges').textContent = results.filter(function(r){return r.status==='pricechange';}).length;
+  document.getElementById('da-flagChanges').textContent = results.filter(function(r){return r.status==='flagchange';}).length;
+  document.getElementById('da-resultBrand').textContent = brand;
+  document.getElementById('da-resultProd').textContent = prodStore;
+  document.getElementById('da-resultUat').textContent = uatStore;
+  daActiveFilter = 'all';
+  daApplyFilters();
+  document.getElementById('da-results').classList.remove('hidden');
+  document.getElementById('da-results').scrollIntoView({ behavior: 'smooth' });
+  resetDaLoading();
+}
+
+function daApplyFilters() {
+  var search = (document.getElementById('da-search').value || '').toLowerCase();
+  daFilteredResults = daAllResults.filter(function(r) {
+    if (daActiveFilter !== 'all' && r.status !== daActiveFilter) return false;
+    if (search && r.key.toLowerCase().indexOf(search) < 0 && r.displayName.toLowerCase().indexOf(search) < 0 && (r.category||'').toLowerCase().indexOf(search) < 0) return false;
+    return true;
+  });
+  daRenderTable(daFilteredResults);
+}
+
+function daFilter(f, btn) {
+  btn.closest('.filter-row').querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  daActiveFilter = f;
+  daApplyFilters();
+}
+
+var DA_STATUS_BADGE = {
+  'new': '<span class="badge badge-info">New in UAT</span>',
+  'missing': '<span class="badge badge-unmapped">Missing from UAT</span>',
+  'namechange': '<span class="badge badge-virtual">Name Changed</span>',
+  'pricechange': '<span class="badge badge-error">Price Diff</span>',
+  'flagchange': '<span class="badge badge-unmapped">Flag Diff</span>'
+};
+
+function daRenderTable(results) {
+  var el = document.getElementById('da-rowCount');
+  el.textContent = 'Showing ' + results.length + ' of ' + daAllResults.length;
+  document.getElementById('da-tbody').innerHTML = results.slice(0, 500).map(function(r,i){
+    var pp = r.prodPrice != null ? '$'+parseFloat(r.prodPrice).toFixed(2) : '\u2014';
+    var up = r.uatPrice != null ? '$'+parseFloat(r.uatPrice).toFixed(2) : '\u2014';
+    var cal = r.calories != null ? r.calories : '\u2014';
+    return '<tr><td>'+(i+1)+'</td><td style="max-width:280px;word-break:break-all;">'+esc(r.key)+'</td><td>'+esc(r.displayName)+'</td><td>'+esc(r.category||'\u2014')+'</td><td>'+pp+'</td><td>'+up+'</td><td>'+cal+'</td><td>'+(r.isVirtual?'Yes':'No')+'</td><td>'+(r.isRecipe?'Yes':'No')+'</td><td>'+(DA_STATUS_BADGE[r.status]||r.label)+'</td></tr>';
+  }).join('');
+}
+
+function daExport() {
+  if (!daAllResults.length) return;
+  var csv = ['key,display_name,category,prod_price,uat_price,calories,is_virtual,is_recipe,status'].concat(
+    daFilteredResults.map(function(r){return '"'+r.key+'","'+r.displayName+'","'+(r.category||'')+'",'+r.prodPrice+','+r.uatPrice+','+r.calories+','+r.isVirtual+','+r.isRecipe+',"'+r.label+'"';})
+  ).join('\n');
+  var b = new Blob([csv],{type:'text/csv'}); var a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = 'delta_' + document.getElementById('da-brand').value + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+function daCopy(btn) {
+  if (!daAllResults.length) return;
+  var t = ['Key\tName\tCategory\tPROD Price\tUAT Price\tCalories\tVirtual\tRecipe\tStatus'].concat(
+    daFilteredResults.map(function(r){return r.key+'\t'+r.displayName+'\t'+(r.category||'\u2014')+'\t'+r.prodPrice+'\t'+r.uatPrice+'\t'+r.calories+'\t'+r.isVirtual+'\t'+r.isRecipe+'\t'+r.label;})
+  ).join('\n');
+  navigator.clipboard.writeText(t).then(function(){ btn.textContent='Copied!'; setTimeout(function(){btn.textContent='\u{1F4CB} Copy Table';},1500); });
+}
+
+function daClear() {
+  document.getElementById('da-prodStore').value = ''; document.getElementById('da-uatStore').value = '';
+  document.getElementById('da-results').classList.add('hidden'); document.getElementById('da-error').classList.add('hidden');
+  daAllResults = []; daFilteredResults = []; daProdFileData = null; daUatFileData = null;
+  var pn = document.getElementById('da-prod-file-name'); pn.textContent=''; pn.classList.add('hidden');
+  var un = document.getElementById('da-uat-file-name'); un.textContent=''; un.classList.add('hidden');
+}
+
+// Setup upload drag/drop
+(function(){
+  ['prod','uat'].forEach(function(which){
+    var zone = document.getElementById('da-'+which+'-drop');
+    if (!zone) return;
+    zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.classList.add('drag'); });
+    zone.addEventListener('dragleave', function(){ zone.classList.remove('drag'); });
+    zone.addEventListener('drop', function(e){
+      e.preventDefault(); zone.classList.remove('drag');
+      if (e.dataTransfer.files[0]) {
+        var fileInput = document.getElementById('da-'+which+'-file');
+        fileInput.files = e.dataTransfer.files;
+        daHandleFile(which, fileInput);
+      }
+    });
+  });
+  daUpdateStoreMap();
+})();
+
+// ════════════════════════════════════════════════════════════════
+//  TOOL 3: MENU MAPPING VALIDATOR
+// ════════════════════════════════════════════════════════════════
+var MV_BRANDS = {
+  B1: { token: 'REPLACE_ME_TOKEN', masterLoc: 'master',
+    extraFields: ['menuItemId','optionGroupId','drinkComponentId','entreeComponentId','sideComponentId'],
+    sampleLoc: '1000' },
+  B2: { token: 'REPLACE_ME_TOKEN', masterLoc: 'master',
+    extraFields: ['salesItemId','optionGroupId','menuItemId'],
+    sampleLoc: '5' }
+};
+
+var mvAllProducts = [], mvFilteredProducts = [], mvContextualPaths = [], mvActiveFilter = 'all', mvActiveCtxFilter = null;
+
+function mvUpdateHint() {
+  var brand = document.getElementById('mv-brand').value;
+  var cfg = MV_BRANDS[brand];
+  document.getElementById('mv-brandHint').textContent = 'Sample location: ' + cfg.sampleLoc + ' | Master: ' + cfg.masterLoc + ' | Extra fields: ' + cfg.extraFields.join(', ');
+}
+mvUpdateHint();
+
+function mvFetchMenu(locationId, brand, token) {
+  var params = new URLSearchParams({ location_id: locationId, brand: brand, event_type: 'menu' });
+  return fetch(MENU_API_BASE + '/menu_events/data?' + params, { headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status+' for '+brand+' location '+locationId); return r.json(); });
+}
+
+function mvExtractAllProducts(menuData, mappingLookup) {
+  var products = [];
+  var seen = {};
+  var data = menuData.data || menuData.menu || menuData;
+  var mapping = mappingLookup || data.mappingLookup || {};
+
+  // Extract from main products array
+  function processProduct(p, source) {
+    if (!p || seen[p.id]) return;
+    seen[p.id] = true;
+    var posMapping = mapping[p.id] || {};
+    var isMapped = !!posMapping.posId;
+    products.push({
+      id: p.id || '', displayName: p.displayName || p.display_name || p.name || '',
+      posId: posMapping.posId || '', isVirtual: !!p.isVirtual, isRecipe: !!p.isRecipe,
+      isDefault: !!p.isDefault, quantityMin: p.quantityMin != null ? p.quantityMin : null,
+      quantityMax: p.quantityMax != null ? p.quantityMax : null,
+      isMapped: isMapped, source: [source], groups: [],
+      menuItemId: posMapping.menuItemId || '', optionGroupId: posMapping.optionGroupId || '',
+      salesItemId: posMapping.salesItemId || '', drinkComponentId: posMapping.drinkComponentId || '',
+      entreeComponentId: posMapping.entreeComponentId || '', sideComponentId: posMapping.sideComponentId || '',
+      category: p.category || '', mappingType: 'Direct'
+    });
+  }
+
+  // Walk main products
+  var mainProducts = data.products || [];
+  if (Array.isArray(mainProducts)) {
+    mainProducts.forEach(function(p){ processProduct(p, 'main_products'); });
+  } else if (typeof mainProducts === 'object') {
+    for (var k in mainProducts) { if (mainProducts.hasOwnProperty(k)) { var pp = mainProducts[k]; pp.id = pp.id || k; processProduct(pp, 'main_products'); } }
+  }
+
+  // Walk productGroups for child products
+  var groups = data.productGroups || data.product_groups || [];
+  if (Array.isArray(groups)) {
+    groups.forEach(function(g) {
+      var children = g.childRefs || g.children || g.products || [];
+      children.forEach(function(childId) {
+        if (typeof childId === 'string') {
+          // Find the product and add group info
+          var existing = products.find(function(pr){return pr.id === childId;});
+          if (existing) { if (existing.groups.indexOf(g.displayName || g.id || '') < 0) existing.groups.push(g.displayName || g.id || ''); }
+        } else if (typeof childId === 'object') {
+          childId.id = childId.id || childId.product_id;
+          processProduct(childId, 'product_groups');
+          var ex2 = products.find(function(pr){return pr.id === childId.id;});
+          if (ex2 && g.displayName) { if (ex2.groups.indexOf(g.displayName) < 0) ex2.groups.push(g.displayName); }
+        }
+      });
+    });
+  }
+
+  // Detect contextual mappings (parent#child keys)
+  var contextual = [];
+  for (var mKey in mapping) {
+    if (mapping.hasOwnProperty(mKey) && mKey.indexOf('#') > 0) {
+      var parts = mKey.split('#');
+      var parentId = parts[0], childId2 = parts[1];
+      var childProd = products.find(function(pr){return pr.id === childId2;});
+      contextual.push({
+        contextualKey: mKey, parentProductId: parentId, childProductId: childId2,
+        childDisplayName: childProd ? childProd.displayName : '',
+        posId: (mapping[mKey] || {}).posId || '',
+        menuItemId: (mapping[mKey] || {}).menuItemId || '',
+        optionGroupId: (mapping[mKey] || {}).optionGroupId || '',
+        salesItemId: (mapping[mKey] || {}).salesItemId || '',
+        isVirtual: childProd ? childProd.isVirtual : false,
+        isRecipe: childProd ? childProd.isRecipe : false,
+        isDefault: childProd ? childProd.isDefault : false,
+        quantityMin: childProd ? childProd.quantityMin : null,
+        quantityMax: childProd ? childProd.quantityMax : null
+      });
+      // Mark child as contextually mapped if it wasn't direct-mapped
+      if (childProd && !childProd.isMapped) {
+        childProd.isMapped = true;
+        childProd.mappingType = 'Contextual';
+        childProd.posId = (mapping[mKey] || {}).posId || childProd.posId;
+      }
+    }
+  }
+
+  return { products: products, contextualPaths: contextual };
+}
+
+function mvRun() {
+  var brand = document.getElementById('mv-brand').value;
+  var locId = document.getElementById('mv-location').value.trim();
+  if (!locId) { alert('Enter a Location ID'); return; }
+  var cfg = MV_BRANDS[brand];
+  if (!cfg) { alert('Brand not supported yet'); return; }
+
+  document.getElementById('mv-runBtn').disabled = true;
+  document.getElementById('mv-loading').classList.remove('hidden');
+  document.getElementById('mv-results').classList.add('hidden');
+  document.getElementById('mv-progress').style.width = '0%';
+
+  document.getElementById('mv-loadingText').textContent = 'Fetching location ' + locId + ' menu...';
+  document.getElementById('mv-progress').style.width = '33%';
+
+  mvFetchMenu(locId, brand, cfg.token).then(function(locData) {
+    document.getElementById('mv-loadingText').textContent = 'Fetching master menu...';
+    document.getElementById('mv-progress').style.width = '66%';
+    return mvFetchMenu(cfg.masterLoc, brand, cfg.token).then(function(masterData) {
+      document.getElementById('mv-loadingText').textContent = 'Validating mappings...';
+      document.getElementById('mv-progress').style.width = '90%';
+
+      // Extract from master (source of truth for mappings)
+      var masterResult = mvExtractAllProducts(masterData);
+
+      // Also extract from location for cross-reference
+      var locResult = mvExtractAllProducts(locData);
+
+      // Merge: use master products as base, enrich with location data
+      var allProducts = masterResult.products;
+      mvContextualPaths = masterResult.contextualPaths;
+
+      // Mark products that also exist in location
+      var locIdSet = {};
+      locResult.products.forEach(function(p){ locIdSet[p.id] = true; });
+
+      mvAllProducts = allProducts;
+      mvActiveFilter = 'all';
+      mvActiveCtxFilter = null;
+      mvUpdateDashboard(brand, locId, cfg);
+      document.getElementById('mv-results').classList.remove('hidden');
+      document.getElementById('mv-results').scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('mv-progress').style.width = '100%';
+      document.getElementById('mv-runBtn').disabled = false;
+      document.getElementById('mv-loading').classList.add('hidden');
+    });
+  }).catch(function(e) {
+    alert('Error: ' + e.message);
+    document.getElementById('mv-runBtn').disabled = false;
+    document.getElementById('mv-loading').classList.add('hidden');
+  });
+}
+
+function mvUpdateDashboard(brand, locId, cfg) {
+  var total = mvAllProducts.length;
+  var mapped = mvAllProducts.filter(function(p){return p.isMapped;}).length;
+  var realUn = mvAllProducts.filter(function(p){return !p.isMapped && !p.isVirtual;});
+  var virtUn = mvAllProducts.filter(function(p){return !p.isMapped && p.isVirtual;});
+
+  document.getElementById('mv-totalCount').textContent = total;
+  document.getElementById('mv-mappedCount').textContent = mapped;
+  document.getElementById('mv-realUnmapped').textContent = realUn.length;
+  document.getElementById('mv-virtualCount').textContent = virtUn.length;
+  document.getElementById('mv-contextualCount').textContent = mvContextualPaths.length;
+  document.getElementById('mv-resultBrand').textContent = brand;
+  document.getElementById('mv-resultLoc').textContent = locId;
+
+  // Insight banner
+  var banner = document.getElementById('mv-insight');
+  banner.style.display = 'block';
+  if (realUn.length === 0) {
+    banner.className = 'insight-banner insight-ok';
+    banner.innerHTML = '<strong>All non-virtual products are mapped!</strong> ' + virtUn.length + ' unmapped product' + (virtUn.length !== 1 ? 's have' : ' has') + ' isVirtual: true.';
+  } else {
+    var names = realUn.slice(0, 10).map(function(p){return '<strong>'+esc(p.displayName)+'</strong> <span style="font-family:monospace;font-size:0.85em;color:var(--text2);">('+esc(p.id)+')</span>';}).join(', ');
+    banner.className = 'insight-banner insight-warn';
+    banner.innerHTML = '<strong>' + realUn.length + ' non-virtual product' + (realUn.length !== 1 ? 's' : '') + ' missing POS mapping:</strong> ' + names + (realUn.length > 10 ? '...' : '') + '<br><span style="color:var(--text2);">' + virtUn.length + ' other unmapped product' + (virtUn.length !== 1 ? 's are' : ' is') + ' virtual (expected).</span>';
+  }
+
+  mvBuildHeaders(cfg);
+  mvApplyFilters();
+  mvRenderContextual(cfg);
+}
+
+function mvBuildHeaders(cfg) {
+  var extras = cfg.extraFields;
+  var html = '<tr><th>Product ID</th><th>Display Name</th><th>Status</th><th>POS ID</th>';
+  extras.forEach(function(f){ html += '<th>' + esc(f) + '</th>'; });
+  html += '<th>Virtual</th><th>Recipe</th><th>Default</th><th>Qty Min</th><th>Qty Max</th><th>Source</th><th>Groups</th></tr>';
+  document.getElementById('mv-thead').innerHTML = html;
+
+  var chtml = '<tr><th>Contextual Key</th><th>Parent ID</th><th>Child ID</th><th>Child Name</th><th>POS ID</th>';
+  extras.forEach(function(f){ chtml += '<th>' + esc(f) + '</th>'; });
+  chtml += '<th>Virtual</th><th>Recipe</th><th>Default</th><th>Qty Min</th><th>Qty Max</th></tr>';
+  document.getElementById('mv-ctx-thead').innerHTML = chtml;
+}
+
+function mvApplyFilters() {
+  var search = (document.getElementById('mv-search').value || '').toLowerCase();
+  mvFilteredProducts = mvAllProducts.filter(function(p) {
+    if (mvActiveFilter === 'mapped' && !p.isMapped) return false;
+    if (mvActiveFilter === 'unmapped' && (p.isMapped || p.isVirtual)) return false;
+    if (mvActiveFilter === 'virtual' && (!p.isVirtual || p.isMapped)) return false;
+    if (mvActiveFilter === 'contextual' && p.mappingType !== 'Contextual') return false;
+    if (search && p.id.toLowerCase().indexOf(search) < 0 && p.displayName.toLowerCase().indexOf(search) < 0 && (p.posId||'').toLowerCase().indexOf(search) < 0) return false;
+    return true;
+  });
+  mvRenderTable();
+}
+
+function mvFilter(f, btn) {
+  btn.closest('.filter-row').querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  mvActiveFilter = f;
+  mvApplyFilters();
+}
+
+function mvRenderTable() {
+  var brand = document.getElementById('mv-brand').value;
+  var cfg = MV_BRANDS[brand];
+  var extras = cfg ? cfg.extraFields : [];
+  var el = document.getElementById('mv-rowCount');
+  el.textContent = 'Showing ' + mvFilteredProducts.length + ' of ' + mvAllProducts.length;
+  document.getElementById('mv-tbody').innerHTML = mvFilteredProducts.slice(0, 500).map(function(p) {
+    var isRealUn = !p.isMapped && !p.isVirtual;
+    var isVirtUn = !p.isMapped && p.isVirtual;
+    var style = isRealUn ? 'background:rgba(239,68,68,0.05);' : isVirtUn ? 'background:rgba(139,92,246,0.05);' : '';
+    var statusBadge = p.isMapped ? '<span class="badge badge-mapped">Mapped</span>' : isRealUn ? '<span class="badge badge-unmapped">Unmapped</span>' : '<span class="badge badge-virtual">Virtual</span>';
+    var row = '<tr style="'+style+'"><td style="font-size:0.78rem;word-break:break-all;">'+esc(p.id)+'</td><td><strong>'+esc(p.displayName)+'</strong></td><td>'+statusBadge+'</td><td style="font-family:monospace;">'+esc(p.posId||'\u2014')+'</td>';
+    extras.forEach(function(f){ row += '<td style="font-family:monospace;font-size:0.78rem;">'+esc(p[f]||'\u2014')+'</td>'; });
+    row += '<td>'+(p.isVirtual?'<span class="badge badge-virtual">Yes</span>':'No')+'</td>';
+    row += '<td>'+(p.isRecipe?'Yes':'No')+'</td>';
+    row += '<td>'+(p.isDefault?'Yes':'No')+'</td>';
+    row += '<td style="text-align:center;">'+(p.quantityMin!=null?p.quantityMin:'\u2014')+'</td>';
+    row += '<td style="text-align:center;">'+(p.quantityMax!=null?p.quantityMax:'\u2014')+'</td>';
+    row += '<td>'+esc((p.source||[]).join(', '))+'</td>';
+    row += '<td style="max-width:200px;font-size:0.78rem;">'+esc(p.groups&&p.groups.length?p.groups.slice(0,3).join(', ')+(p.groups.length>3?' ...':''):'\u2014')+'</td>';
+    row += '</tr>';
+    return row;
+  }).join('');
+}
+
+function mvRenderContextual(cfg) {
+  var section = document.getElementById('mv-contextual-section');
+  var pillBox = document.getElementById('mv-ctx-pills');
+  if (!mvContextualPaths.length) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+
+  // Build pills for unique child IDs
+  var seenIds = {};
+  var pills = [];
+  mvContextualPaths.forEach(function(p) {
+    if (seenIds[p.childProductId]) return;
+    seenIds[p.childProductId] = true;
+    var count = mvContextualPaths.filter(function(x){return x.childProductId === p.childProductId;}).length;
+    pills.push('<span class="ctx-pill" data-child-id="'+esc(p.childProductId)+'" onclick="mvFilterCtx(\''+p.childProductId+'\',this)">'+esc(p.childProductId)+' ('+count+')</span>');
+  });
+  pillBox.innerHTML = pills.join('');
+
+  mvRenderCtxTable(mvContextualPaths, cfg);
+}
+
+function mvFilterCtx(childId, pill) {
+  mvActiveCtxFilter = (mvActiveCtxFilter === childId) ? null : childId;
+  document.querySelectorAll('#mv-ctx-pills .ctx-pill').forEach(function(p){
+    p.classList.toggle('active', p.getAttribute('data-child-id') === mvActiveCtxFilter);
+  });
+  var brand = document.getElementById('mv-brand').value;
+  var cfg = MV_BRANDS[brand];
+  var paths = mvActiveCtxFilter ? mvContextualPaths.filter(function(p){return p.childProductId === mvActiveCtxFilter;}) : mvContextualPaths;
+  mvRenderCtxTable(paths, cfg);
+}
+
+function mvRenderCtxTable(paths, cfg) {
+  var extras = cfg ? cfg.extraFields : [];
+  document.getElementById('mv-ctx-tbody').innerHTML = paths.map(function(p) {
+    var row = '<tr><td style="font-family:monospace;font-size:0.78rem;word-break:break-all;">'+esc(p.contextualKey)+'</td>';
+    row += '<td style="font-family:monospace;color:var(--blue);font-size:0.78rem;">'+esc(p.parentProductId)+'</td>';
+    row += '<td style="font-family:monospace;color:var(--yellow);font-size:0.78rem;">'+esc(p.childProductId)+'</td>';
+    row += '<td>'+esc(p.childDisplayName||'\u2014')+'</td>';
+    row += '<td style="font-family:monospace;">'+esc(p.posId||'\u2014')+'</td>';
+    extras.forEach(function(f){ row += '<td style="font-family:monospace;font-size:0.78rem;">'+esc(p[f]||'\u2014')+'</td>'; });
+    row += '<td>'+(p.isVirtual?'<span class="badge badge-virtual">Yes</span>':'No')+'</td>';
+    row += '<td>'+(p.isRecipe?'Yes':'No')+'</td>';
+    row += '<td>'+(p.isDefault?'Yes':'No')+'</td>';
+    row += '<td style="text-align:center;">'+(p.quantityMin!=null?p.quantityMin:'\u2014')+'</td>';
+    row += '<td style="text-align:center;">'+(p.quantityMax!=null?p.quantityMax:'\u2014')+'</td>';
+    row += '</tr>';
+    return row;
+  }).join('');
+}
+
+function mvExport() {
+  if (!mvFilteredProducts.length) return;
+  var brand = document.getElementById('mv-brand').value;
+  var cfg = MV_BRANDS[brand]; var extras = cfg ? cfg.extraFields : [];
+  var headers = ['id','displayName','isMapped','posId'].concat(extras).concat(['isVirtual','isRecipe','isDefault','quantityMin','quantityMax','source','groups']);
+  var csv = [headers.join(',')].concat(mvFilteredProducts.map(function(p){
+    return headers.map(function(h){
+      var v = p[h]; if (Array.isArray(v)) v = v.join('; '); return '"'+(v!=null?v:'')+'"';
+    }).join(',');
+  })).join('\n');
+  var b = new Blob([csv],{type:'text/csv'}); var a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = 'mapping_' + brand + '_' + document.getElementById('mv-location').value + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+function mvCopy(btn) {
+  if (!mvFilteredProducts.length) return;
+  var t = ['ID\tName\tMapped\tPOS ID\tVirtual\tRecipe\tGroups'].concat(
+    mvFilteredProducts.map(function(p){return p.id+'\t'+p.displayName+'\t'+(p.isMapped?'Yes':'No')+'\t'+(p.posId||'\u2014')+'\t'+(p.isVirtual?'Yes':'No')+'\t'+(p.isRecipe?'Yes':'No')+'\t'+(p.groups||[]).join('; ');})
+  ).join('\n');
+  navigator.clipboard.writeText(t).then(function(){ btn.textContent='Copied!'; setTimeout(function(){btn.textContent='\u{1F4CB} Copy Table';},1500); });
+}
+
+function mvClear() {
+  document.getElementById('mv-location').value = '';
+  document.getElementById('mv-results').classList.add('hidden');
+  mvAllProducts = []; mvFilteredProducts = []; mvContextualPaths = [];
+}
+
+// ════════════════════════════════════════════════════════════════
+//  URL ROUTER — auto-switch tool from ?tool= param
+// ════════════════════════════════════════════════════════════════
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var tool = params.get('tool');
+  var target = (tool && ['unmapped','analyzer','mapper'].indexOf(tool) >= 0) ? tool : 'mapper';
+  switchTool(target);
+})();
+</script>
+</body>
+</html>

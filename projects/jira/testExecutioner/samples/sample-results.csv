@@ -1,0 +1,6 @@
+test_id,status,comment,order_id,description
+TE-10083,PASS,Order placed successfully,ORD-12345,$0 Delivery Fee
+TE-10084,PASS,Discount applied correctly,ORD-12346,BOGO Free Classic Chicken Sandwich
+TE-10085,FAIL,Discount not applied — expected $2 off,,50% Off Any Drink
+TE-10086,BLOCKED,Store closed for maintenance,,Free Medium Slush
+TE-10087,TODO,,,Free Tots with Any Purchase

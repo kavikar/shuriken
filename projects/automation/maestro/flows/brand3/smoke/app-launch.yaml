@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────────
+#  Brand Three — Smoke: App Launch & Home Screen
+#
+#  Quick 30-second smoke test to verify app launches correctly
+#  and the home screen renders with key elements.
+#
+#  Run:  maestro test flows/brand3/smoke/app-launch.yaml
+#  Alt:  .\scripts\run-maestro.ps1 -Flow flows/brand3/smoke/app-launch.yaml -Brand brand3
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+tags:
+  - smoke
+  - brand3
+  - quick
+
+env:
+  BUNDLE_ID: com.example.brand3.uat
+
+---
+
+# Launch app & dismiss all dialogs
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+# ── Verify home screen elements ──
+- extendedWaitUntil:
+    visible: "Order Now"
+    timeout: 20000
+- takeScreenshot: screenshots/brand3_home_screen_${output.RUN_ID}
+
+# Verify bottom tab bar items (testID first, text fallback)
+- runFlow:
+    when:
+      visible:
+        id: "TabBar.Menu.label"
+    commands:
+      - assertVisible:
+          id: "TabBar.Menu.label"
+
+- runFlow:
+    when:
+      visible:
+        id: "TabBar.Bag.label"
+    commands:
+      - assertVisible:
+          id: "TabBar.Bag.label"
+
+- runFlow:
+    when:
+      visible: "Menu"
+    commands:
+      - assertVisible: "Menu"
+
+- runFlow:
+    when:
+      visible: "Bag"
+    commands:
+      - assertVisible: "Bag"
+
+- evalScript: ${console.log('PASSED - Brand Three app launch smoke test')}

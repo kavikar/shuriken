@@ -1,0 +1,199 @@
+# ═══════════════════════════════════════════════════════════════════
+#  Shuriken — Project Registry (EXAMPLE / TEMPLATE)
+#
+#  Central source of truth for ALL projects in the monorepo.
+#  Two-tier hierarchy:  domain → project
+#
+#    projects/
+#      automation/         ← domain: mobile app testing
+#        maestro/          ← Maestro E2E flows on a device cloud
+#      menu/               ← domain: menu engineering
+#        analyzer/         ← menu data validation & analysis
+#        mapper/           ← POS-to-app menu mapping validation
+#
+#  Each project declares its CI, device-cloud, pipeline, and
+#  notification configuration. Replace placeholder IDs/URLs with
+#  your own and keep secrets in environment variables.
+#
+#  Used by:
+#    - scripts/ci/*                 (CI helpers)
+#    - scripts/ci/shuriken_config.py   (config loader)
+# ═══════════════════════════════════════════════════════════════════
+
+# ── Global defaults (inherited by all projects unless overridden) ──
+defaults:
+  env: staging
+  platform: android
+  ci_workflow: staging
+  device_cloud:
+    username_env: DEVICE_CLOUD_USERNAME
+    access_key_env: DEVICE_CLOUD_ACCESS_KEY
+  notifications:
+    teams_webhook_env: TEAMS_WEBHOOK_URL
+    outlook_webhook_env: OUTLOOK_WEBHOOK_URL
+
+# ── Shared CI apps (referenced by projects via anchor) ───────────
+_ci_apps: &ci_apps
+  b1:
+    title: App-Brand1
+    slug: "00000000-0000-0000-0000-000000000001"
+    abbreviation: b1
+  b2:
+    title: App-Brand2
+    slug: "00000000-0000-0000-0000-000000000002"
+    abbreviation: b2
+  b3:
+    title: App-Brand3
+    slug: "00000000-0000-0000-0000-000000000003"
+    abbreviation: b3
+  b4:
+    title: App-Brand4
+    slug: "00000000-0000-0000-0000-000000000004"
+    abbreviation: b4
+
+# ═══════════════════════════════════════════════════════════════════
+#  Domains & Projects
+# ═══════════════════════════════════════════════════════════════════
+domains:
+
+  # ──────────────────────────────────────────────────────────────
+  #  AUTOMATION — Mobile App Testing
+  # ──────────────────────────────────────────────────────────────
+  automation:
+    name: "Mobile App Automation"
+    description: "E2E testing and device automation for mobile apps"
+    owner: "QE Mobile"
+    projects:
+      maestro:
+        name: "Maestro E2E Testing"
+        description: "Mobile app E2E testing using Maestro flows on a device cloud"
+        type: maestro
+        path: projects/automation/maestro
+        owner: "QE Mobile"
+        ci: *ci_apps
+        device_cloud:
+          custom_ids:
+            b1: { android: "b1-staging", ios: "b1-staging-ios" }
+            b2: { android: "b2-staging", ios: "b2-staging-ios" }
+            b3: { android: "b3-staging", ios: "b3-staging-ios" }
+            b4: { android: "b4-staging", ios: "b4-staging-ios" }
+          devices:
+            android:
+              - "Generic Android-15.0"
+              - "Generic Android-16.0"
+            ios:
+              - "Generic iOS-18"
+              - "Generic iOS-19"
+        pipeline:
+          stages: [test, report, notify]
+          runner_tag: ci-runner
+          docker_image: "python:3.11-slim"
+          suites: [smoke, order, auth, regression]
+        confluence:
+          space_key: QE
+          parent_page_id: "000000000000"
+        notifications:
+          teams: true
+          outlook: true
+
+  # ──────────────────────────────────────────────────────────────
+  #  MENU — Menu Engineering
+  # ──────────────────────────────────────────────────────────────
+  menu:
+    name: "Menu Engineering"
+    description: "Menu data analysis and mapping validation across brands and locations"
+    owner: "Menu Engineering"
+    projects:
+      analyzer:
+        name: "Menu Delta Analyzer"
+        description: "PROD vs staging menu comparison — validation checks and Excel export"
+        type: flask-app
+        path: projects/menu/analyzer
+        owner: "Menu Engineering"
+        entry_point: app.py
+        port: 5000
+        brands:
+          B1:
+            name: Brand One
+            prod_api: "https://api.brand1.example/menu/{store_id}"
+            staging_api: "https://menu-b1.staging.example/{store_id}"
+          B2:
+            name: Brand Two
+            prod_api: "https://api.brand2.example/menu/{store_id}"
+            staging_api: "https://menu-b2.staging.example/{store_id}"
+          B3:
+            name: Brand Three
+            prod_api: "https://api.brand3.example/menu/{store_id}"
+            staging_api: "https://menu-b3.staging.example/{store_id}"
+        ci: null
+        device_cloud: null
+        checks:
+          - product_count
+          - ingredients
+          - recipe_flags
+          - modifier_minmax
+          - modifier_ordering
+          - display_names
+          - delta_products
+          - non_virtual
+        dependencies:
+          - flask>=2.3.0
+          - requests>=2.31.0
+          - openpyxl>=3.1.0
+        pipeline:
+          stages: [analyze, report, notify]
+          runner_tag: ci-runner
+          docker_image: "python:3.11-slim"
+          suites: [full-delta, product-count-only, ingredient-audit]
+        confluence:
+          space_key: QE
+          parent_page_id: "000000000001"
+        notifications:
+          teams: true
+          outlook: false
+
+      mapper:
+        name: "Menu Mapping Validator"
+        description: "Location Menu vs Master Menu product mapping validation"
+        type: flask-app
+        path: projects/menu/mapper
+        owner: "Menu Engineering"
+        entry_point: api_server.py
+        port: 5000
+        brands:
+          B1:
+            name: Brand One
+            master_location_id: "1000"
+            sample_location_id: "1001"
+          B2:
+            name: Brand Two
+            master_location_id: "2000"
+            sample_location_id: "2001"
+        ci: null
+        device_cloud: null
+        report_sheets:
+          - All Products
+          - Non-Virtual Products
+          - Mapped Products
+          - Unmapped Products
+          - Products in Groups
+          - Summary
+          - Contextual Mappings
+          - Root Cause Analysis
+        dependencies:
+          - flask>=3.0.0
+          - flask-cors>=4.0.0
+          - pandas>=2.0.0
+          - openpyxl>=3.1.0
+          - requests>=2.31.0
+        pipeline:
+          stages: [validate, report, notify]
+          runner_tag: ci-runner
+          docker_image: "python:3.11-slim"
+          suites: [full-mapping, unmapped-only]
+        confluence:
+          space_key: QE
+          parent_page_id: "000000000002"
+        notifications:
+          teams: true
+          outlook: false

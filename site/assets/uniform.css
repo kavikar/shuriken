@@ -1,0 +1,74 @@
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface-2: #242836;
+  --border: #2e3348;
+  --text: #e4e6f0;
+  --text-muted: #9ba1b8;
+  --accent: #4f86ff;
+  --accent-2: #16a34a;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --radius: 12px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Segoe UI, system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at top right, #1d2240 0%, var(--bg) 40%);
+  color: var(--text);
+}
+.container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.28);
+}
+input, select, textarea, button {
+  font: inherit;
+}
+input, select, textarea {
+  width: 100%;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+button {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #0ea5e9);
+  color: #fff;
+  font-weight: 700;
+}
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+.badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: rgba(79, 134, 255, 0.15);
+  color: #9ec0ff;
+}
+.hidden { display: none !important; }
+a.nav-back {
+  color: #9ec0ff;
+  text-decoration: none;
+  font-size: 14px;
+}
+a.nav-back:hover { text-decoration: underline; }

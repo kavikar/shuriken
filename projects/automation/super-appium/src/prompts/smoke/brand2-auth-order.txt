@@ -1,0 +1,15 @@
+Mobile smoke prompt for B2 app using appium-mcp.
+
+Goal:
+- Launch app
+- Verify home is visible
+- Navigate to order entry
+- Capture evidence screenshots
+
+Steps:
+1. Start session on Android using configured capabilities.
+2. Capture screenshot after launch.
+3. Validate main home tab or equivalent landing content is visible.
+4. Navigate toward order entry or menu surface.
+5. Capture screenshot at order entry checkpoint.
+6. End session and summarize PASS/FAIL/BLOCKED with evidence paths.

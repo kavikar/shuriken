@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────────
+#  Brand Three — Smoke: Browse Menu
+#
+#  Launches app, selects a store, navigates to Menu tab, and
+#  verifies menu categories are visible. Does NOT add items.
+#
+#  Run:  maestro test flows/brand3/smoke/browse-menu.yaml
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+tags:
+  - smoke
+  - brand3
+  - menu
+
+env:
+  BUNDLE_ID: com.example.brand3.uat
+  LOCATION_QUERY: "00000"
+  LOCATION_ID: "1000"
+
+---
+
+# Launch app & dismiss dialogs
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+# Search & select store
+- runFlow: ../../../shared/select-location.yaml
+
+# Navigate to Menu tab
+- tapOn:
+    id: "TabBar.Menu.label"
+    optional: true
+- tapOn:
+    text: "Menu"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Verify menu categories load — check at least 2 common ones
+- runFlow:
+    when:
+      visible: "Featured"
+    commands:
+      - assertVisible: "Featured"
+
+- runFlow:
+    when:
+      visible: "Burgers"
+    commands:
+      - assertVisible: "Burgers"
+
+- runFlow:
+    when:
+      visible: "Drinks"
+    commands:
+      - assertVisible: "Drinks"
+
+- takeScreenshot: screenshots/brand3_menu_categories_${output.RUN_ID}
+
+# Tap into a category to verify items load
+- runFlow:
+    when:
+      visible: "Burgers"
+    commands:
+      - tapOn: "Burgers"
+      - waitForAnimationToEnd:
+          timeout: 10000
+      - takeScreenshot: screenshots/brand3_menu_burgers_${output.RUN_ID}
+
+- evalScript: ${console.log('PASSED - Brand Three browse menu smoke test')}

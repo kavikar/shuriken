@@ -1,0 +1,25 @@
+{
+  "name": "test-executioner",
+  "version": "1.0.0",
+  "description": "Xray test execution results uploader — CSV/JSON/Markdown → PASS/FAIL status updates with evidence",
+  "private": true,
+  "scripts": {
+    "upload": "npx ts-node src/runners/results-uploader.ts --upload",
+    "dry-run": "npx ts-node src/runners/results-uploader.ts --dry-run",
+    "upload:web": "npx ts-node src/runners/results-uploader.ts --upload --te TE-10082",
+    "upload:app": "npx ts-node src/runners/results-uploader.ts --upload --te TE-10081",
+    "preview": "npx ts-node src/runners/results-uploader.ts --dry-run",
+    "reset": "npx ts-node src/runners/reset-te.ts",
+    "report": "npx ts-node src/runners/execution-report.ts",
+    "status-list": "npx ts-node src/runners/te-status-list.ts",
+    "single-update": "npx ts-node src/runners/single-status-update.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5",
+    "@types/node": "^20.11.0"
+  }
+}

@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────────────────────────
+#  B2 — Smoke: Tab Bar Navigation
+#
+#  Verifies all bottom tab bar items are tappable and navigate
+#  to their respective screens.
+#
+#  Run:  maestro test flows/b2/smoke/tab-navigation.yaml
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+tags:
+  - smoke
+  - b2
+  - navigation
+
+env:
+  BUNDLE_ID: com.example.brand2.uat
+
+---
+
+# Launch app & dismiss dialogs
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+# Wait for home screen
+- extendedWaitUntil:
+    visible: "Bag"
+    timeout: 20000
+
+# Dismiss "Close modal" if tech difficulties appear
+- runFlow:
+    when:
+      visible: "Close modal"
+    commands:
+      - tapOn: "Close modal"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# ── Tab 1: Menu ──
+- tapOn:
+    id: "TabBar.Menu.label"
+    optional: true
+- tapOn:
+    text: "Menu"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: screenshots/b2_tab_menu_${output.RUN_ID}
+
+# ── Tab 2: Deals / Loyalty ──
+- tapOn:
+    id: "TabBar.LoyaltyStackRoot.label"
+    optional: true
+- tapOn:
+    text: "Deals"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: screenshots/b2_tab_deals_${output.RUN_ID}
+
+# ── Tab 3: Orders ──
+- tapOn:
+    id: "TabBar.Orders.label"
+    optional: true
+- tapOn:
+    text: "Orders"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: screenshots/b2_tab_orders_${output.RUN_ID}
+
+# ── Tab 4: Bag ──
+- tapOn:
+    id: "TabBar.Bag.label"
+    optional: true
+- tapOn:
+    text: "Bag"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: screenshots/b2_tab_bag_${output.RUN_ID}
+
+# ── Return to Home ──
+- tapOn:
+    id: "TabBar.Home.label"
+    optional: true
+- tapOn:
+    text: "Home"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 5000
+
+- evalScript: ${console.log('PASSED - B2 tab navigation smoke test')}

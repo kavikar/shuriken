@@ -1,0 +1,28 @@
+{
+  "env": {
+    "IOS_BUNDLE_ID": "com.Brand Four.reactive.uat",
+    "ANDROID_BUNDLE_ID": "com.Brand Four.reactive.uat",
+    "ENGINE_BRAND": "Brand Four",
+    "AUTH_EMAIL": "replace-me@example.com",
+    "AUTH_PASS": "replace-me",
+    "PHONE_NUMBER": "0000000000",
+    "PRODUCT_NAME": "Original Blend Coffee",
+    "CATEGORY_NAME": "BEVERAGES",
+    "FULFILLMENT_TYPE": "PICKUP",
+    "LOCATION_QUERY": "00000",
+    "LOCATION_ID": "1002",
+    "DELIVERY_LOCATION_QUERY": "replace-me",
+    "API_ENDPOINT": "brand4-api.uat.staging.example/brand4/digital-exp-api",
+    "NOTIFICATION_SERVICE_URL": "replace-me",
+    "CC_NUMBER": "replace-me",
+    "CC_CVV": "replace-me",
+    "CC_EXP": "replace-me",
+    "CC_ZIP": "00000"
+  },
+  "thresholds": {
+    "critical": 1,
+    "high": 3,
+    "medium": null,
+    "low": null
+  }
+}

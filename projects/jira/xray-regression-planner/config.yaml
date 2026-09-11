@@ -1,0 +1,103 @@
+# XRay Regression Planner — Configuration
+# Copy to config.yaml and adjust as needed.
+
+risk_weights:
+  defect_density: 0.35
+  escaped_defect: 0.25
+  churn_frequency: 0.20
+  change_type: 0.10
+  severity_weight: 0.10
+
+tier_thresholds:
+  tier1_min: 70
+  tier2_min: 40
+
+override_rules:
+  escaped_p1p2_floor: 85
+  new_component_floor: 75
+  stable_component_cap: 30
+
+platform_labels:
+  web: ["web", "webapp", "desktop"]
+  mweb: ["mweb", "mobile-web", "mobileweb"]
+  ios: ["ios", "iphone", "ipad", "apple"]
+  android: ["android", "gms"]
+  thirdparty: ["thirdparty", "third-party", "3p", "integration"]
+
+execution:
+  avg_mins_per_test: 3
+  max_tier1_pct_per_component: 0.40
+
+confidence:
+  high_threshold: 0.85
+  medium_threshold: 0.60
+
+output:
+  dir: ./output
+
+# Optional overrides for Planner-style analysis classification.
+# Keep defaults if this block is omitted.
+Planner_report:
+  functionality_rules:
+    - keyword: auth
+      functionality: Authentication & Account Management
+      subfunctionality: Identity and account lifecycle
+    - keyword: wallet
+      functionality: Payments & Wallet
+      subfunctionality: Wallet and payment methods
+    - keyword: checkout
+      functionality: Ordering & Cart
+      subfunctionality: Checkout journey and order placement
+  risk_keywords:
+    - keyword: auth
+      tag: Auth
+    - keyword: payment
+      tag: Payments
+    - keyword: loyalty
+      tag: Loyalty
+    - keyword: fraud
+      tag: Security
+  third_party_keywords:
+    - keyword: auth0
+      name: Auth0
+      category: Identity Provider
+    - keyword: contentful
+      name: Contentful
+      category: CMS
+    - keyword: optimizely
+      name: Optimizely
+      category: Analytics
+
+# Copilot chat execution defaults.
+# Update brand_test_sets per environment so natural-language requests can publish TEs.
+copilot_chat:
+  default_issue_types:
+    - Story
+  brand_aliases:
+    Brand One: [b1, brand1, brand1, "Brand One"]
+    B2: [b2, "Brand Two"]
+    Brand Three: [b3, brand3]
+    Brand Four: [dnk, dd, brand4]
+    Ignite: [ignite]
+  brand_test_sets:
+    Brand One: []
+    B2: []
+    Brand Three: [TE-10046, TE-10047, TE-10048, TE-10049, TE-10080]
+    Brand Four: []
+    Ignite: []
+  brand_test_filters:
+    Brand One:
+      MWEB: [43639]
+      WEB: [43668]
+      AOS_APP: [43267]
+      IOS_APP: [43638]
+    B2:
+      WEB: [44465]
+      AOS_APP: [44466]
+      IOS_APP: [44467]
+      MWEB: [44468]
+    Brand Three:
+      IOS_APP: [44461]
+      AOS_APP: [44462]
+      WEB: [44463]
+      MWEB: [44464]

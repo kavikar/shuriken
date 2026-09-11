@@ -1,0 +1,97 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Launch App & Dismiss Dialogs
+#
+#  Handles the common app startup sequence:
+#    1. Launch app (preserving state for faster startup)
+#    2. Set permissions to allow
+#    3. Dismiss cookie/privacy banners (Accept All / Ketch)
+#    4. Dismiss app-update and tech-difficulty modals
+#    5. Wait for home screen to stabilise
+#    6. Generate unique RUN_ID for screenshots
+#
+#  Adapted from the upstream production-sanity suite proven patterns.
+#
+#  Usage in a flow:
+#    - runFlow: ../shared/launch-and-dismiss.yaml
+#
+#  Expects env:
+#    BUNDLE_ID  — the app bundle/package id
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+
+---
+
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Generate unique run ID for screenshot file names
+- evalScript: ${output.RUN_ID = new Date().toISOString().replace(/[:.]/g, '-')}
+
+# ── Dismiss cookie / privacy banner (Ketch) ──
+- extendedWaitUntil:
+    visible: "Accept All"
+    timeout: 15000
+    optional: true
+
+- runFlow:
+    when:
+      visible: "Accept All"
+    commands:
+      - tapOn: "Accept All"
+
+# Fallback: older "Accept" text
+- runFlow:
+    when:
+      visible: "Accept"
+    commands:
+      - tapOn: "Accept"
+
+# ── Dismiss "APP UPDATE REQUIRED" modal ──
+- runFlow:
+    when:
+      visible: "APP UPDATE REQUIRED"
+    commands:
+      - tapOn: "Close"
+
+# ── Dismiss tech-difficulties "Close modal" ──
+- runFlow:
+    when:
+      visible: "Close modal"
+    commands:
+      - tapOn: "Close modal"
+
+# ── Dismiss "Don't Allow Paste" dialog ──
+- runFlow:
+    when:
+      visible: "Don't Allow Paste"
+    commands:
+      - tapOn: "Don't Allow Paste"
+
+# ── iOS: Dismiss App Tracking Transparency (ATT) prompt ──
+- runFlow:
+    when:
+      visible: "Allow Tracking"
+    commands:
+      - tapOn: "Allow Tracking"
+
+# ── iOS: Dismiss ATT "Ask App Not to Track" variant ──
+- runFlow:
+    when:
+      visible: "Allow"
+    commands:
+      - tapOn: "Allow"
+
+# ── Dismiss "Not Now" update prompt ──
+- runFlow:
+    when:
+      visible: "Not Now"
+    commands:
+      - tapOn: "Not Now"
+
+# ── Wait for home screen to fully render ──
+- waitForAnimationToEnd:
+    timeout: 10000

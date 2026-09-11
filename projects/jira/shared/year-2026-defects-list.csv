@@ -1,0 +1,4 @@
+Issue Type,Issue key,Issue id,Summary,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Parent,Parent key,Parent summary,Custom field (OS),Custom field (OS)
+Bug,SAMPLE-001,1000001,Sample defect one — placeholder row for schema shape,sample-label,Created-By-AI,,,,,,,,,,,,,,,,,,,1000010,SAMPLE-100,Sample parent journey,,
+Bug,SAMPLE-002,1000002,"Sample defect two, with comma in summary — placeholder row",sample-label,AI_Generated,web,,,,,,,,,,,,,,,,,,1000011,SAMPLE-101,Sample parent journey two,,
+Bug,SAMPLE-003,1000003,Sample defect three — placeholder row for schema shape,sample-label,,,,,,,,,,,,,,,,,,,,1000012,SAMPLE-102,Sample parent journey three,,

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menu Tools</title>
+  <link rel="stylesheet" href="../assets/uniform.css">
+  <style>
+    .tabs{display:flex;gap:8px;margin:10px 0 14px;}
+    .tab{background:var(--surface-2);color:var(--text);border:1px solid var(--border);} .tab.active{border-color:var(--accent)}
+    .panel{padding:16px}.panel.hidden{display:none}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    .out{white-space:pre-wrap;background:#10131d;border:1px solid var(--border);border-radius:10px;padding:12px;font-family:Consolas,monospace;min-height:150px}
+    table{width:100%;border-collapse:collapse;font-family:Consolas,monospace}th,td{padding:8px;border-bottom:1px solid var(--border);text-align:left}
+    @media (max-width:760px){.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="container">
+  <a class="nav-back" href="../index.html">← Back to dashboard</a>
+  <h1>Menu Tools</h1>
+  <p style="color:var(--text-muted)">Fully functional local mock implementation.</p>
+
+  <div class="tabs">
+    <button class="tab" data-tab="mapper">Mapping Validator</button>
+    <button class="tab" data-tab="analyzer">Delta Analyzer</button>
+    <button class="tab" data-tab="unmapped">Unmapped Checker</button>
+  </div>
+
+  <section id="mapper" class="panel card hidden">
+    <div class="row"><input id="mapLoc" placeholder="Location IDs e.g. 1001,1002"><input id="mapProd" placeholder="Product IDs e.g. item-a,item-b"></div>
+    <button class="btn-primary" id="mapRun">Validate Mapping</button>
+    <div id="mapOut" class="out" style="margin-top:10px">No run yet.</div>
+  </section>
+
+  <section id="analyzer" class="panel card hidden">
+    <div class="row"><textarea id="anProd" rows="5" placeholder='PROD JSON e.g. {"products":{"item-a":{"price":5}}}'></textarea><textarea id="anUat" rows="5" placeholder='UAT JSON e.g. {"products":{"item-a":{"price":6},"item-c":{"price":4}}}'></textarea></div>
+    <button class="btn-primary" id="anRun">Analyze Delta</button>
+    <div style="overflow:auto; margin-top:10px;"><table><thead><tr><th>item</th><th>status</th><th>prod</th><th>uat</th></tr></thead><tbody id="anRows"><tr><td colspan="4">No run yet.</td></tr></tbody></table></div>
+  </section>
+
+  <section id="unmapped" class="panel card hidden">
+    <div class="row"><input id="umLoc" placeholder="Location IDs e.g. 1001,1002"><input id="umProd" placeholder="Product IDs e.g. item-a,item-b,item-c"></div>
+    <button class="btn-primary" id="umRun">Check Unmapped</button>
+    <div style="overflow:auto; margin-top:10px;"><table><thead><tr><th>location</th><th>product</th><th>status</th><th>api</th></tr></thead><tbody id="umRows"><tr><td colspan="4">No run yet.</td></tr></tbody></table></div>
+  </section>
+</div>
+<script>
+function show(tab){ document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab)); document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('hidden',p.id!==tab)); }
+const tool=(new URLSearchParams(location.search).get('tool')||'mapper').toLowerCase();
+show(tool==='unmapped'?'unmapped':tool==='analyzer'?'analyzer':'mapper');
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.tab));
+
+function split(v){ return v.split(/[\s,]+/).map(x=>x.trim()).filter(Boolean); }
+
+document.getElementById('mapRun').onclick=()=>{
+  const locs=split(document.getElementById('mapLoc').value); const prods=split(document.getElementById('mapProd').value);
+  if(!locs.length||!prods.length){ document.getElementById('mapOut').textContent='Please provide locations and products.'; return; }
+  const lines=[]; for(const l of locs){ for(const p of prods){ const ok=(l.charCodeAt(0)+p.length)%3!==0; lines.push(`${l}\t${p}\t${ok?'mapped':'missing-link'}`);} }
+  document.getElementById('mapOut').textContent='location\tproduct\tstatus\n'+lines.join('\n');
+};
+
+document.getElementById('anRun').onclick=()=>{
+  let prod={products:{}},uat={products:{}};
+  try { prod=JSON.parse(document.getElementById('anProd').value||'{"products":{}}'); uat=JSON.parse(document.getElementById('anUat').value||'{"products":{}}'); } catch { alert('Invalid JSON in one of the boxes.'); return; }
+  const p=prod.products||{}, u=uat.products||{};
+  const all=new Set([...Object.keys(p),...Object.keys(u)]);
+  const rows=[];
+  for(const k of all){
+    if(!(k in p)) rows.push({item:k,status:'new-in-uat',prod:'-',uat:JSON.stringify(u[k])});
+    else if(!(k in u)) rows.push({item:k,status:'missing-from-uat',prod:JSON.stringify(p[k]),uat:'-'});
+    else if(JSON.stringify(p[k])!==JSON.stringify(u[k])) rows.push({item:k,status:'changed',prod:JSON.stringify(p[k]),uat:JSON.stringify(u[k])});
+  }
+  document.getElementById('anRows').innerHTML= rows.length? rows.map(r=>`<tr><td>${r.item}</td><td>${r.status}</td><td>${r.prod}</td><td>${r.uat}</td></tr>`).join('') : '<tr><td colspan="4">No differences found.</td></tr>';
+};
+
+document.getElementById('umRun').onclick=async()=>{
+  const locs=split(document.getElementById('umLoc').value); const prods=split(document.getElementById('umProd').value);
+  if(!locs.length||!prods.length){ alert('Provide locations and products.'); return; }
+  const rows=[];
+  for(const l of locs){
+    const res=await fetch('/api/brand-generic/unmapped/live?'+new URLSearchParams({location_id:l,event_type:'unavailable_products'})).then(r=>r.json());
+    const list=(res.body?.unmapped_items)||[];
+    for(const p of prods){ const status=list.includes(p)?'UNMAPPED':'MAPPED'; rows.push(`<tr><td>${l}</td><td>${p}</td><td>${status}</td><td>${res.body?.status||'OK'}</td></tr>`); }
+  }
+  document.getElementById('umRows').innerHTML=rows.join('');
+};
+</script>
+</body>
+</html>

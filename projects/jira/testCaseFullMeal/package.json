@@ -1,0 +1,35 @@
+{
+  "name": "test-case-full-meal",
+  "version": "1.0.0",
+  "description": "Xray test case generation & creation: EPIC → optimized tests → Jira + Test Execution",
+  "private": true,
+  "scripts": {
+    "extract": "npx ts-node src/extractors/test-case-extractor.ts",
+    "app:dry-run": "npx ts-node src/runners/app-bulk-update.ts --dry-run",
+    "app:update": "npx ts-node src/runners/app-bulk-update.ts",
+    "web:dry-run": "npx ts-node src/runners/web-bulk-update.ts --dry-run",
+    "web:update": "npx ts-node src/runners/web-bulk-update.ts",
+    "web:gherkin": "npx ts-node src/runners/web-bulk-update.ts --phase 1",
+    "web:comet": "npx ts-node src/runners/web-bulk-update.ts --phase 2",
+    "comet:batches": "npx ts-node src/generators/comet-batch-generator.ts",
+    "comet:batch": "npx ts-node src/generators/comet-batch-generator.ts --batch",
+    "comet:save": "npx ts-node src/generators/comet-batch-generator.ts --save",
+    "verify": "npx ts-node src/runners/verify-all.ts",
+    "lwl:dry-run": "npx ts-node src/runners/lwl-loyalty-creator.ts",
+    "lwl:create": "npx ts-node src/runners/lwl-loyalty-creator.ts --create",
+    "offers:preview": "npx ts-node src/runners/offer-test-generator.ts",
+    "offers:create": "npx ts-node src/runners/offer-test-generator.ts --create",
+    "fiserv:preview": "npx ts-node src/runners/fiserv-error-code-te-creator.ts --preview",
+    "fiserv:create": "npx ts-node src/runners/fiserv-error-code-te-creator.ts --create",
+    "268:optimize": "npx ts-node src/runners/brand3-268-te-optimizer.ts",
+    "268:optimize:json": "npx ts-node src/runners/brand3-268-te-optimizer.ts --export json"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5",
+    "@types/node": "^20.11.0"
+  }
+}

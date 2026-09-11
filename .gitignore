@@ -1,0 +1,34 @@
+# Environment
+.env
+.env.*
+!.env.example
+!.env.local.example
+!*.example
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Test artifacts
+test-results/
+screenshots/
+reports/
+
+# Logs
+*.log
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+
+# Claude Code local overrides (keep .claude/settings.json shared)
+.claude/settings.local.json

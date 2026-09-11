@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Guest Checkout
+#
+#  Composes shared sub-flows: bag → checkout → contact → payment → place order.
+#  Single source of truth — no inline duplicate logic.
+#
+#  Expects env:
+#    BUNDLE_ID
+#    GUEST_FIRST_NAME, GUEST_LAST_NAME, GUEST_PHONE, GUEST_EMAIL
+#    CC_NAME, TEST_CC_NUMBER, TEST_CC_EXPIRY, TEST_CC_CVV, TEST_CC_ZIP
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+
+---
+
+# ── Open Bag & Checkout (handles Bag/FAB overlap) ──
+- runFlow: open-bag-checkout.yaml
+
+# ── Select Stall if prompted ──
+- runFlow:
+    when:
+      visible:
+        id: "Bag.Checkout.PickupLocation.Stall"
+    commands:
+      - tapOn:
+          id: "Bag.Checkout.PickupLocation.Stall"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# ── Fill Guest Contact Info (testID-based) ──
+- runFlow: fill-guest-contact.yaml
+
+# ── Pay with Credit Card (handles Google Pay overlap) ──
+- runFlow: pay-credit-card.yaml
+
+# ── Place Order & Verify Confirmation (handles ROKT popup) ──
+- runFlow: place-order-verify.yaml

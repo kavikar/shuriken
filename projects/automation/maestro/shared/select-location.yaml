@@ -1,0 +1,222 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Select Pickup Location
+#
+#  Handles the full location selection flow:
+#    1. Tap "Select Location" on home screen
+#    2. Handle location permission popup
+#    3. Search by zip code
+#    4. Select the target store via "Order Here" button
+#
+#  Expects env:
+#    BUNDLE_ID       — app bundle/package id
+#    LOCATION_QUERY  — zip code to search (e.g. "00000")
+#    LOCATION_ID     — store ID for testID selector (e.g. "1000")
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+
+---
+
+# ── Step 1: Tap "Select Location" button on home screen ──
+- extendedWaitUntil:
+    visible:
+      id: "HomeScreen.ChangeLocationBtn"
+    timeout: 20000
+
+- tapOn:
+    id: "HomeScreen.ChangeLocationBtn"
+
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ── Step 2: Handle location permission popup (if shown) ──
+# DENY location permission so the app skips GPS and relies on zip code search.
+# This is critical on BrowserStack cloud devices where GPS may not work reliably.
+
+# Android permission dialog — Deny
+- runFlow:
+    when:
+      visible:
+        id: "com.android.permissioncontroller:id/permission_deny_button"
+    commands:
+      - tapOn:
+          id: "com.android.permissioncontroller:id/permission_deny_button"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+# Android "Allow" dialog variant — tap "Don't Allow" / deny
+- runFlow:
+    when:
+      visible:
+        id: "com.android.permissioncontroller:id/permission_allow_foreground_only_button"
+    commands:
+      - tapOn:
+          id: "com.android.permissioncontroller:id/permission_deny_button"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+# iOS permission dialog — "Don't Allow"
+- runFlow:
+    when:
+      visible: "Don't Allow"
+    commands:
+      - tapOn: "Don't Allow"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+# iOS permission dialog — "Allow While Using App" (fallback if deny not shown)
+- runFlow:
+    when:
+      visible: "Allow While Using App"
+    commands:
+      - tapOn: "Allow While Using App"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+# ── Step 3: Enter zip code in search field ──
+# The search input may appear in different forms depending on whether
+# a location was previously selected. Try the testID first, then text fallbacks.
+- extendedWaitUntil:
+    visible:
+      id: "LocationSearch.PredictiveSearch.LocationSearchInputTextBox.InputAddress"
+    timeout: 15000
+    optional: true
+
+# Primary: testID-based search input
+- runFlow:
+    when:
+      visible:
+        id: "LocationSearch.PredictiveSearch.LocationSearchInputTextBox.InputAddress"
+    commands:
+      - tapOn:
+          id: "LocationSearch.PredictiveSearch.LocationSearchInputTextBox.InputAddress"
+
+# Fallback 1: text-based search field
+- runFlow:
+    when:
+      notVisible:
+        id: "LocationSearch.PredictiveSearch.LocationSearchInputTextBox.InputAddress"
+    commands:
+      - runFlow:
+          when:
+            visible: "Search for city, state, or zip code"
+          commands:
+            - tapOn: "Search for city, state, or zip code"
+      - runFlow:
+          when:
+            visible: "Search for a location"
+          commands:
+            - tapOn: "Search for a location"
+      # Fallback 2: tap the search bar area by coordinate (top of location screen)
+      - runFlow:
+          when:
+            notVisible: "Search for city, state, or zip code"
+          commands:
+            - runFlow:
+                when:
+                  notVisible: "Search for a location"
+                commands:
+                  - tapOn:
+                      point: "50%, 12%"
+                  - waitForAnimationToEnd:
+                      timeout: 3000
+
+# Clear any pre-filled text first, then type zip
+- eraseText: 10
+- inputText: ${LOCATION_QUERY}
+
+# Submit search by pressing Enter key (more reliable than tapping search icon)
+- pressKey: Enter
+
+# Wait for search API to return results — the nearby/GPS list
+# needs time to be replaced by zip code results.
+# On BrowserStack the UAT API can be slower via the Local tunnel.
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# ── Retry: If search returned an error toast or no results, clear and retry ──
+# On BrowserStack, the first search may fail if the Local tunnel hasn't
+# fully connected yet. Retry once after a short wait.
+- runFlow:
+    when:
+      notVisible:
+        id: "LocationSearch.SearchList.${LOCATION_ID}.Locationcard.sections.buttonRow.Locationcard.pressables.orderHereButton"
+    commands:
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - tapOn:
+          id: "LocationSearch.PredictiveSearch.LocationSearchInputTextBox.InputAddress"
+      - eraseText: 10
+      - inputText: ${LOCATION_QUERY}
+      - pressKey: Enter
+      - waitForAnimationToEnd:
+          timeout: 20000
+
+# ── Step 4: Select store — swipe bottom half to find "Order Here" ──
+# The location screen has a MAP on the top ~45% and a STORE LIST on the
+# bottom ~55%.  A normal scroll/scrollUntilVisible scrolls the full screen
+# which drags the map instead of the store list.
+# Fix: Use swipe with explicit start/end Y-coordinates so the gesture
+# only touches the BOTTOM HALF (store list area, below the map).
+
+# First try: the store may already be visible without scrolling
+- runFlow:
+    when:
+      visible:
+        id: "LocationSearch.SearchList.${LOCATION_ID}.Locationcard.sections.buttonRow.Locationcard.pressables.orderHereButton"
+    commands:
+      - tapOn:
+          id: "LocationSearch.SearchList.${LOCATION_ID}.Locationcard.sections.buttonRow.Locationcard.pressables.orderHereButton"
+
+# If not visible yet, swipe the store list (bottom half) up repeatedly
+- runFlow:
+    when:
+      notVisible:
+        id: "LocationSearch.SearchList.${LOCATION_ID}.Locationcard.sections.buttonRow.Locationcard.pressables.orderHereButton"
+    commands:
+      # Swipe 1: scroll store list up (start at 80% Y, end at 55% Y)
+      - swipe:
+          start: "50%, 80%"
+          end: "50%, 55%"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+      # Check again after first swipe
+      - runFlow:
+          when:
+            notVisible:
+              id: "LocationSearch.SearchList.${LOCATION_ID}.Locationcard.sections.buttonRow.Locationcard.pressables.orderHereButton"
+          commands:
+            # Swipe 2
+            - swipe:
+                start: "50%, 80%"
+                end: "50%, 55%"
+            - waitForAnimationToEnd:
+                timeout: 3000
+
+      # Check again after second swipe
+      - runFlow:
+          when:
+            notVisible:
+              id: "LocationSearch.SearchList.${LOCATION_ID}.Locationcard.sections.buttonRow.Locationcard.pressables.orderHereButton"
+          commands:
+            # Swipe 3
+            - swipe:
+                start: "50%, 80%"
+                end: "50%, 55%"
+            - waitForAnimationToEnd:
+                timeout: 3000
+
+      # Final attempt — wait with extended timeout
+      - extendedWaitUntil:
+          visible:
+            id: "LocationSearch.SearchList.${LOCATION_ID}.Locationcard.sections.buttonRow.Locationcard.pressables.orderHereButton"
+          timeout: 15000
+
+      - tapOn:
+          id: "LocationSearch.SearchList.${LOCATION_ID}.Locationcard.sections.buttonRow.Locationcard.pressables.orderHereButton"
+
+- waitForAnimationToEnd:
+    timeout: 5000
+
+- takeScreenshot: screenshots/location_selected_${output.RUN_ID}

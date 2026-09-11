@@ -1,0 +1,91 @@
+{
+  "B2": {
+    "name": "Brand Two",
+    "short": "B2",
+    "color": "#FFB300",
+    "logo_char": "🍔",
+    "prod_url": "https://api.brand2.example/menu/{store_id}",
+    "uat_url": "https://menu-b2.staging.example/{store_id}",
+    "prod_headers": {
+      "accept": "application/json, text/plain, */*",
+      "accept-language": "en-US,en;q=0.9",
+      "cache-control": "max-age=0",
+      "origin": "https://www.brand2.example",
+      "referer": "https://www.brand2.example/",
+      "x-channel": "WEBOA",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "uat_headers": {
+      "accept": "application/json, text/plain, */*",
+      "accept-language": "en-US,en;q=0.9",
+      "cache-control": "max-age=0",
+      "origin": "https://ignite-b2.staging.example",
+      "referer": "https://ignite-b2.staging.example/",
+      "x-channel": "WEBOA",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "store_map": {
+      "1002": "1001",
+      "1000": "1001",
+      "1003": "1004"
+    }
+  },
+  "B1": {
+    "name": "Brand One",
+    "short": "B1",
+    "color": "#E31837",
+    "logo_char": "🍟",
+    "prod_url": "https://api.brand1.example/menu/{store_id}",
+    "uat_url": "https://menu-b1.staging.example/{store_id}",
+    "prod_headers": {
+      "accept": "application/json, text/plain, */*",
+      "accept-language": "en-US,en;q=0.9",
+      "cache-control": "max-age=0",
+      "origin": "https://www.brand1.example",
+      "referer": "https://www.brand1.example/",
+      "x-channel": "WEBOA",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "uat_headers": {
+      "accept": "application/json, text/plain, */*",
+      "accept-language": "en-US,en;q=0.9",
+      "cache-control": "max-age=0",
+      "origin": "https://ignite-b1.staging.example",
+      "referer": "https://ignite-b1.staging.example/",
+      "x-channel": "WEBOA",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "store_map": {
+      "2000": "1000",
+      "1001": "1000",
+      "2001": "1001"
+    }
+  },
+  "B3": {
+    "name": "Brand Three",
+    "short": "B3",
+    "color": "#0055A5",
+    "logo_char": "🥤",
+    "prod_url": "https://api.brand3.example/menu/{store_id}",
+    "uat_url": "https://menu-b3.staging.example/{store_id}",
+    "prod_headers": {
+      "accept": "application/json, text/plain, */*",
+      "accept-language": "en-US,en;q=0.9",
+      "cache-control": "max-age=0",
+      "origin": "https://www.brand3.example",
+      "referer": "https://www.brand3.example/",
+      "x-channel": "WEBOA",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "uat_headers": {
+      "accept": "application/json, text/plain, */*",
+      "accept-language": "en-US,en;q=0.9",
+      "cache-control": "max-age=0",
+      "origin": "https://ignite-b3.staging.example",
+      "referer": "https://ignite-b3.staging.example/",
+      "x-channel": "WEBOA",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "store_map": {}
+  }
+}

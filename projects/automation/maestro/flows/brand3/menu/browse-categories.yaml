@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────────
+#  Brand Three — Menu: Browse Categories
+#
+#  Verifies menu loads and categories are navigable.
+#
+#  Run:  maestro test flows/brand3/menu/browse-categories.yaml
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+tags:
+  - menu
+  - brand3
+  - smoke
+
+env:
+  BUNDLE_ID: com.example.brand3.uat
+  LOCATION_QUERY: "00000"
+  LOCATION_ID: "6796"
+
+---
+
+# Launch & select a store first
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+- runFlow: ../../../shared/select-location.yaml
+
+# ── Verify menu categories are visible ──
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: screenshots/brand3_menu_loaded_${output.RUN_ID}
+
+# Navigate to Menu tab if available
+- runFlow:
+    when:
+      visible:
+        id: "TabBar.Menu.label"
+    commands:
+      - tapOn:
+          id: "TabBar.Menu.label"
+      - waitForAnimationToEnd:
+          timeout: 10000
+
+# Try tapping through common Brand Three categories
+- runFlow:
+    when:
+      visible: "Burgers"
+    commands:
+      - tapOn: "Burgers"
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - takeScreenshot: screenshots/brand3_menu_burgers_${output.RUN_ID}
+      - back
+
+- runFlow:
+    when:
+      visible: "Drinks"
+    commands:
+      - tapOn: "Drinks"
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - takeScreenshot: screenshots/brand3_menu_drinks_${output.RUN_ID}
+      - back
+
+- runFlow:
+    when:
+      visible: "Combos"
+    commands:
+      - tapOn: "Combos"
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - takeScreenshot: screenshots/brand3_menu_combos_${output.RUN_ID}
+      - back

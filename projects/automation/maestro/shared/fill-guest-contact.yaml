@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────────
+#  Shared Sub-Flow: Fill Guest Contact Info
+#
+#  Fills first name, last name, email, and phone on the
+#  guest checkout form using exact resource IDs.
+#
+#  Expects env:
+#    BUNDLE_ID
+#    GUEST_FIRST_NAME  — e.g. "Plate"
+#    GUEST_LAST_NAME   — e.g. "SmokeTester"
+#    GUEST_EMAIL       — e.g. "user@example.com"
+#    GUEST_PHONE       — e.g. "5555550100"
+# ─────────────────────────────────────────────────────────────────
+
+appId: ${BUNDLE_ID}
+
+---
+
+# ── Scroll to contact info section ──
+- scrollUntilVisible:
+    element:
+      id: "Bag.Checkout.ContactInfo.CustomerInfoCard.CustomerInfoCard.inputs.firstName"
+    direction: DOWN
+    timeout: 20000
+    speed: 40
+
+# ── First Name ──
+- tapOn:
+    id: "Bag.Checkout.ContactInfo.CustomerInfoCard.CustomerInfoCard.inputs.firstName"
+- inputText: ${GUEST_FIRST_NAME}
+- hideKeyboard
+
+# ── Last Name ──
+- tapOn:
+    id: "Bag.Checkout.ContactInfo.CustomerInfoCard.CustomerInfoCard.inputs.lastName"
+- inputText: ${GUEST_LAST_NAME}
+- hideKeyboard
+
+# ── Email ──
+- tapOn:
+    id: "Bag.Checkout.ContactInfo.CustomerInfoCard.CustomerInfoCard.inputs.email"
+- inputText: ${GUEST_EMAIL}
+- hideKeyboard
+
+# ── Phone ──
+- tapOn:
+    id: "Bag.Checkout.ContactInfo.CustomerInfoCard.CustomerInfoCard.inputs.phone"
+- inputText: ${GUEST_PHONE}
+- hideKeyboard
+
+- takeScreenshot: screenshots/guest_contact_info_${output.RUN_ID}

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Version Compare</title>
+  <link rel="stylesheet" href="../assets/uniform.css">
+  <style>
+    .card { padding: 16px; margin-top: 14px; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { border-bottom:1px solid var(--border); text-align:left; padding:8px; font-family: Consolas, monospace; }
+    th { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a class="nav-back" href="../index.html">← Back to dashboard</a>
+  <h1>Version Compare</h1>
+  <p style="color:var(--text-muted)">Compares mock service versions across environments.</p>
+
+  <section class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;">
+      <select id="brand"><option>all</option><option>brand1</option><option>brand2</option><option>brand3</option></select>
+      <label><input type="checkbox" id="envTest" checked> test</label>
+      <label><input type="checkbox" id="envStaging" checked> staging</label>
+      <button class="btn-primary" id="run">Compare</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="margin:0;">Result</h3>
+      <button class="btn-secondary" id="csv">Export CSV</button>
+    </div>
+    <div style="overflow:auto; margin-top:10px;">
+      <table>
+        <thead><tr><th>brand</th><th>environment</th><th>service</th><th>version</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="4" style="color:var(--text-muted)">No data</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+<script>
+let tableRows=[];
+function toCsv(rows){ const h=['brand','environment','service','version']; return [h.join(',')].concat(rows.map(r=>h.map(k=>r[k]).join(','))).join('\n'); }
+function render(){ const tbody=document.getElementById('rows'); if(!tableRows.length){ tbody.innerHTML='<tr><td colspan="4" style="color:var(--text-muted)">No data</td></tr>'; return; } tbody.innerHTML=tableRows.map(r=>`<tr><td>${r.brand}</td><td>${r.environment}</td><td>${r.service}</td><td>${r.version}</td></tr>`).join(''); }
+
+document.getElementById('run').onclick=async()=>{
+  const envs=[]; if(document.getElementById('envTest').checked) envs.push('test'); if(document.getElementById('envStaging').checked) envs.push('staging');
+  const brand=document.getElementById('brand').value;
+  if(!envs.length){ alert('Select at least one environment.'); return; }
+  const rows=[];
+  for (const env of envs){
+    const qs = new URLSearchParams({repo: brand, branch: env});
+    const tree = await fetch('/api/version-compare/tree?' + qs.toString()).then(r=>r.json());
+    for (const p of tree.paths || []) {
+      const file = await fetch('/api/version-compare/file?' + new URLSearchParams({repo: brand, branch: env, path: p})).then(r=>r.json());
+      rows.push({brand: file.brand, environment: file.environment, service: file.service, version: file.version});
+    }
+  }
+  tableRows=rows; render();
+};
+
+document.getElementById('csv').onclick=()=>{
+  const blob=new Blob([toCsv(tableRows)],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='version-compare.csv'; a.click();
+};
+</script>
+</body>
+</html>

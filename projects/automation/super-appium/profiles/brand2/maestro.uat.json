@@ -1,0 +1,28 @@
+{
+  "env": {
+    "IOS_BUNDLE_ID": "com.example.brand2.uat",
+    "ANDROID_BUNDLE_ID": "com.example.brand2.uat",
+    "ENGINE_BRAND": "b2",
+    "AUTH_EMAIL": "replace-me@example.com",
+    "AUTH_PASS": "replace-me",
+    "PHONE_NUMBER": "0000000000",
+    "PRODUCT_NAME": "Traditional Wings",
+    "CATEGORY_NAME": "WINGS",
+    "FULFILLMENT_TYPE": "PICKUP",
+    "LOCATION_QUERY": "00000",
+    "LOCATION_ID": "1001",
+    "DELIVERY_LOCATION_QUERY": "replace-me",
+    "API_ENDPOINT": "b2-api.uat.staging.example/b2/digital-exp-api",
+    "NOTIFICATION_SERVICE_URL": "replace-me",
+    "CC_NUMBER": "replace-me",
+    "CC_CVV": "replace-me",
+    "CC_EXP": "replace-me",
+    "CC_ZIP": "00000"
+  },
+  "thresholds": {
+    "critical": 1,
+    "high": 3,
+    "medium": null,
+    "low": null
+  }
+}

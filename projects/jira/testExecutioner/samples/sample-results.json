@@ -1,0 +1,29 @@
+{
+  "source": "comet",
+  "executedAt": "2025-01-15T10:30:00Z",
+  "tester": "kUser",
+  "environment": "UAT",
+  "results": [
+    {
+      "testKey": "TE-10083",
+      "status": "PASS",
+      "comment": "Order placed successfully",
+      "orderId": "ORD-12345",
+      "description": "$0 Delivery Fee"
+    },
+    {
+      "testKey": "TE-10084",
+      "status": "PASS",
+      "comment": "Discount applied correctly",
+      "orderId": "ORD-12346",
+      "description": "BOGO Free Classic Chicken Sandwich"
+    },
+    {
+      "testKey": "TE-10085",
+      "status": "FAIL",
+      "comment": "Discount not applied — expected $2 off",
+      "defect": "Offer code not recognized in cart",
+      "description": "50% Off Any Drink"
+    }
+  ]
+}

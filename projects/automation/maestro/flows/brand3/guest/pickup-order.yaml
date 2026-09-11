@@ -1,0 +1,74 @@
+# ═══════════════════════════════════════════════════════════════
+#  Brand Three — Guest ASAP Pickup Order (MasterCard)
+#
+#  Full critical-path E2E test composing shared sub-flows:
+#    Launch → Select Store → Menu → Add Item → Bag →
+#    Guest Checkout → Contact Info → Credit Card Payment →
+#    Place Order → Verify Confirmation
+#
+#  Run:  maestro test flows/brand3/guest/pickup-order.yaml
+# ═══════════════════════════════════════════════════════════════
+
+appId: ${BUNDLE_ID}
+tags:
+  - e2e
+  - brand3
+  - guest
+  - pickup
+  - mastercard
+  - critical-path
+
+env:
+  BUNDLE_ID: com.example.brand3.uat
+  LOCATION_QUERY: "00000"
+  LOCATION_ID: "1000"
+  MENU_CATEGORY_ID: "Breakfast"
+  PRODUCT_CATEGORY: "NationalBreakfastEntrees"
+  PRODUCT_ID: "BaconBreakfastBurrito"
+  GUEST_FIRST_NAME: "TestGuest"
+  GUEST_LAST_NAME: "User"
+  GUEST_PHONE: "5555550100"
+  GUEST_EMAIL: "user@example.com"
+  CC_NAME: "Test User"
+  TEST_CC_NUMBER: "5555555555554444"
+  TEST_CC_EXPIRY: "0333"
+  TEST_CC_CVV: "123"
+  TEST_CC_ZIP: "00000"
+
+---
+
+# STEP 1: Launch App & Dismiss Dialogs
+- runFlow: ../../../shared/launch-and-dismiss.yaml
+
+# STEP 2: Select Pickup Location
+- runFlow: ../../../shared/select-location.yaml
+
+# STEP 3: Browse Menu & Add Item
+- runFlow: ../../../shared/menu-add-item.yaml
+
+# STEP 4: Open Bag & Checkout
+- runFlow: ../../../shared/open-bag-checkout.yaml
+
+# STEP 5: Select Stall
+- runFlow:
+    when:
+      visible:
+        id: "Bag.Checkout.PickupLocation.Stall"
+    commands:
+      - tapOn:
+          id: "Bag.Checkout.PickupLocation.Stall"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# STEP 6: Fill Guest Contact Info
+- runFlow: ../../../shared/fill-guest-contact.yaml
+
+# STEP 7: Pay with Credit Card
+- runFlow: ../../../shared/pay-credit-card.yaml
+
+# STEP 8: Place Order & Verify Confirmation
+- runFlow: ../../../shared/place-order-verify.yaml
+
+- evalScript: ${console.log('PASSED - Brand Three Guest ASAP Pickup Order with MasterCard')}
+
+- stopApp

@@ -1,0 +1,32 @@
+{
+  "name": "@shuriken/super-appium",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Superpowers-driven Appium MCP mobile automation harness",
+  "scripts": {
+    "doctor": "powershell -ExecutionPolicy Bypass -File ./scripts/appium-doctor.ps1",
+    "appium:server": "powershell -ExecutionPolicy Bypass -File ./scripts/start-appium-server.ps1",
+    "appium:mcp": "powershell -ExecutionPolicy Bypass -File ./scripts/start-appium-mcp.ps1",
+    "appium:mcp:no-ui": "powershell -ExecutionPolicy Bypass -File ./scripts/start-appium-mcp.ps1 -NoUi",
+    "test:android:one": "node ./scripts/run-one-android-test.js",
+    "profile:sync": "node ./scripts/sync-brand-profile.js",
+    "suite:agentic": "powershell -ExecutionPolicy Bypass -File ./scripts/run-suite-agentic.ps1",
+    "smoke:agentic": "powershell -ExecutionPolicy Bypass -File ./scripts/run-smoke-agentic.ps1",
+    "smoke:brand3:android": "npm run smoke:agentic -- -Brand brand3 -Env uat -Platform android",
+    "smoke:Brand One:android": "npm run smoke:agentic -- -Brand Brand One -Env uat -Platform android",
+    "smoke:b2:android": "npm run smoke:agentic -- -Brand b2 -Env uat -Platform android",
+    "smoke:Brand Four:android": "npm run smoke:agentic -- -Brand Brand Four -Env uat -Platform android",
+    "suite:brand3:smoke": "npm run suite:agentic -- -Brand brand3 -Env uat -Platform android -Suite smoke",
+    "suite:Brand One:smoke": "npm run suite:agentic -- -Brand Brand One -Env uat -Platform android -Suite smoke",
+    "suite:b2:smoke": "npm run suite:agentic -- -Brand b2 -Env uat -Platform android -Suite smoke",
+    "suite:Brand Four:smoke": "npm run suite:agentic -- -Brand Brand Four -Env uat -Platform android -Suite smoke"
+  },
+  "devDependencies": {
+    "appium": "^3.2.2",
+    "appium-mcp": "^1.78.0",
+    "webdriverio": "^9.15.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

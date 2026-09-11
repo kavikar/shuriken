@@ -1,0 +1,27 @@
+# ════════════════════════════════════════════════════════════════════
+#  GitLab Pages — Shuriken Unified QE Platform
+#  Deploys site/ as GitLab Pages (Menu Tools + Quick Bites + more)
+#
+#  Separated from BrowserStack test pipeline so Pages deploys
+#  independently on every push without waiting for test execution.
+# ════════════════════════════════════════════════════════════════════
+
+pages:
+  stage: .pre
+  image: alpine:latest
+  tags:
+    - ci02-perf
+  script:
+    - mkdir -p public
+    - cp -r site/* public/
+    - echo "GitLab Pages content:"
+    - ls -laR public/
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "test-branch")'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
