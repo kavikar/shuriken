@@ -129,12 +129,16 @@ jobs:
             "\b[Tt][Ee]-(1[1-9][0-9]{3}|10[2-9][0-9]{2}|[2-9][0-9]{4,})\b"
           check "Possible private key" \
             "BEGIN [A-Z ]*PRIVATE KEY"
-          # The internal codename this repo genericizes away from. Excludes
-          # "template"/"boilerplate" (no word boundary) and two placeholder
-          # test-fixture values ("plate master" as a card name, "Plate" as a
-          # guest first name) that aren't project references.
+          # The internal codename this repo genericizes away from. Matches as
+          # a plain substring (not \bplate\b) so it also catches the codename
+          # joined into an identifier by an underscore or camelCase, e.g.
+          # PLATE_B1_TOKEN or PlateApp — a word-boundary match misses those
+          # since "_" and a following capital both count as word characters.
+          # Excludes "template"/"boilerplate" and two placeholder test-fixture
+          # values ("plate master" as a card name, "Plate" as a guest first
+          # name) that aren't project references.
           check "Internal codename instead of the generic project name" \
-            "\bplate\b" "plate master|guest_first_name"
+            "plate" "template|boilerplate|plate master|guest_first_name"
 
           [ $fail -eq 0 ] && echo "No real identifiers found."
           exit $fail

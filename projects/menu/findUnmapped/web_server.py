@@ -9,6 +9,10 @@ from flask_cors import CORS
 
 MENU_API_BASE = "https://menu-api.example/api/v1/menu_events/data"
 
+# Corporate-proxy escape hatch: TLS verification is on by default and only
+# disabled when explicitly opted into, rather than always skipped.
+_INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
+
 
 def _env(name: str, default: str = "") -> str:
 	return os.environ.get(name, default).strip()
@@ -16,19 +20,19 @@ def _env(name: str, default: str = "") -> str:
 # B1 values are aligned to the working curl shared by QE.
 BRAND_AUTH = {
 	"B1": {
-		"primary_token": _env("PLATE_B1_PRIMARY_TOKEN"),
-		"fallback_token": _env("PLATE_B1_FALLBACK_TOKEN"),
-		"primary_cookie": _env("PLATE_B1_PRIMARY_COOKIE"),
+		"primary_token": _env("BRAND_B1_PRIMARY_TOKEN"),
+		"fallback_token": _env("BRAND_B1_FALLBACK_TOKEN"),
+		"primary_cookie": _env("BRAND_B1_PRIMARY_COOKIE"),
 		"fallback_cookie": "",
 	},
 	"B2": {
-		"primary_token": _env("PLATE_B2_PRIMARY_TOKEN"),
-		"fallback_token": _env("PLATE_B2_FALLBACK_TOKEN"),
-		"primary_cookie": _env("PLATE_B2_PRIMARY_COOKIE"),
+		"primary_token": _env("BRAND_B2_PRIMARY_TOKEN"),
+		"fallback_token": _env("BRAND_B2_FALLBACK_TOKEN"),
+		"primary_cookie": _env("BRAND_B2_PRIMARY_COOKIE"),
 		"fallback_cookie": "",
 	},
 	"B3": {
-		"primary_token": _env("PLATE_B3_PRIMARY_TOKEN"),
+		"primary_token": _env("BRAND_B3_PRIMARY_TOKEN"),
 		"fallback_token": "",
 		"primary_cookie": "",
 		"fallback_cookie": "",
@@ -83,7 +87,7 @@ def fetch_unmapped_for_location(brand: str, location_id: str) -> Dict:
 			headers["Cookie"] = cookie
 
 		try:
-			resp = requests.get(MENU_API_BASE, params=params, headers=headers, timeout=90, verify=False)
+			resp = requests.get(MENU_API_BASE, params=params, headers=headers, timeout=90, verify=not _INSECURE_TLS)
 			last_http_status = resp.status_code
 
 			if resp.status_code == 200:
