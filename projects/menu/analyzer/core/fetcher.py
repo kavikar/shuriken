@@ -2,18 +2,23 @@
 Fetcher: Retrieves PROD and UAT menu JSON from IDP APIs or from uploaded file data.
 """
 
+import os
 import warnings
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from typing import Tuple, Optional
 
-# Suppress SSL warnings — corporate proxy intercepts TLS; cert chain is not in Python's trust store
-warnings.filterwarnings("ignore", category=InsecureRequestWarning)
+# Corporate-proxy escape hatch: TLS verification is on by default and only
+# disabled when explicitly opted into, rather than always skipped.
+_INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
+if _INSECURE_TLS:
+    # Suppress SSL warnings only when verification is actually off.
+    warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
 def fetch_menu(url: str, headers: dict, timeout: int = 30) -> dict:
     """Fetch menu data from the given URL with the provided headers."""
-    resp = requests.get(url, headers=headers, timeout=timeout, verify=False)
+    resp = requests.get(url, headers=headers, timeout=timeout, verify=not _INSECURE_TLS)
     resp.raise_for_status()
     return resp.json()
 

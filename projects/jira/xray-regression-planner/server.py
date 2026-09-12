@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -50,6 +51,10 @@ from models.plan import RegressionPlan
 
 setup_logging(verbose=True)
 logger = structlog.get_logger(__name__)
+
+# Corporate-proxy escape hatch: TLS verification is on by default and only
+# disabled when explicitly opted into, rather than always skipped.
+_INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
 
 app = FastAPI(title="XRay Regression Planner", version="1.0.0")
 
@@ -275,7 +280,7 @@ async def run_pipeline(req: PipelineRequest):
         raise HTTPException(500, f"Credential error: {e}")
 
     try:
-        async with httpx.AsyncClient(verify=False) as http_client:
+        async with httpx.AsyncClient(verify=not _INSECURE_TLS) as http_client:
             jira = JiraClient(jira_creds, http_client)
             xray = XrayClient(xray_creds, http_client)
 
@@ -466,7 +471,7 @@ async def create_test_case(req: CreateTestRequest):
     labels = list(set(req.labels + [req.platform, plat_map.get(req.platform, req.platform),
                                      "auto-suggested", "core-coverage", req.area_id]))
     try:
-        async with httpx.AsyncClient(verify=False) as http_client:
+        async with httpx.AsyncClient(verify=not _INSECURE_TLS) as http_client:
             jira = JiraClient(jira_creds, http_client)
             result = await jira.create_issue(
                 project_key="IQE", issue_type="Test",
@@ -502,7 +507,7 @@ async def publish_executions_api(req: PublishRequest):
     brand_idp = BRAND_IDP_VALUES.get(brand_key, "Brand Three")
 
     created = []
-    async with httpx.AsyncClient(verify=False) as http_client:
+    async with httpx.AsyncClient(verify=not _INSECURE_TLS) as http_client:
         jira = JiraClient(jira_creds, http_client)
         xray = XrayClient(xray_creds, http_client)
 

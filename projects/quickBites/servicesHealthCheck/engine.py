@@ -12,7 +12,11 @@ from pathlib import Path
 import requests
 import urllib3
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# Corporate-proxy escape hatch: TLS verification is on by default and only
+# disabled when explicitly opted into, rather than always skipped.
+_INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
+if _INSECURE_TLS:
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 ENV_ALLOWED = {"uat01", "uat01a", "staging", "staginga"}
@@ -498,7 +502,7 @@ def _status_from_http(http_status: int, payload: dict | None) -> str:
 def _check_health_endpoint(url: str, timeout_sec: float) -> dict:
     service_name = _service_name(url)
     try:
-        response = requests.get(url, timeout=timeout_sec, verify=False)
+        response = requests.get(url, timeout=timeout_sec, verify=not _INSECURE_TLS)
         payload = None
         try:
             payload = response.json()
