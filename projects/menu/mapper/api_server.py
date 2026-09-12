@@ -1684,4 +1684,8 @@ if __name__ == '__main__':
     print("  Press Ctrl+C to stop")
     print("=" * 80)
 
-    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
+    # Bind to localhost and keep the debugger off unless explicitly opted
+    # into — Werkzeug's debugger allows arbitrary code execution if reachable.
+    host = os.environ.get("FLASK_HOST", "127.0.0.1")
+    debug = os.environ.get("FLASK_DEBUG") == "1"
+    app.run(debug=debug, host=host, port=5000, use_reloader=False)
