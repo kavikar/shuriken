@@ -4,8 +4,13 @@ import argparse
 import asyncio
 import csv
 import json
+import os
 import re
 from pathlib import Path
+
+# Corporate-proxy escape hatch: TLS verification is on by default and only
+# disabled when explicitly opted into, rather than always skipped.
+_INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
 
 PROJECT_SCOPE_CLAUSE = (
     'project in ("IDP Blue Green and DR", "Digital Blueprint - Build Phase",'
@@ -60,7 +65,7 @@ async def _run(release: str, env_file: str | None, json_out: str | None, csv_out
     jql = SCOPE_JQL_TEMPLATE.format(release_version=release)
     epic_jql = EPIC_JQL_TEMPLATE.format(release_version=release)
 
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=not _INSECURE_TLS) as client:
         jira = JiraClient(jira_creds, client)
         scope_items = await fetch_scope(jira, jql=jql)
         release_epics = await fetch_scope(jira, jql=epic_jql)

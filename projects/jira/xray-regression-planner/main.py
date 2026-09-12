@@ -10,6 +10,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -37,6 +38,10 @@ from output.json_exporter import export_json
 from output.csv_exporter import export_csv
 from output.Planner_report_builder import write_Planner_markdown_report
 from models.plan import RegressionPlan
+
+# Corporate-proxy escape hatch: TLS verification is on by default and only
+# disabled when explicitly opted into, rather than always skipped.
+_INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
 
 console = Console()
 
@@ -141,7 +146,7 @@ async def _run_pipeline(
     env_path = Path(env_file) if env_file else None
     jira_creds, xray_creds = load_credentials(env_path)
 
-    async with httpx.AsyncClient(verify=False) as http_client:
+    async with httpx.AsyncClient(verify=not _INSECURE_TLS) as http_client:
         jira = JiraClient(jira_creds, http_client)
         xray = XrayClient(xray_creds, http_client)
 
@@ -237,7 +242,7 @@ async def _run_Planner_report(
             'ORDER BY status ASC, created DESC'
         )
 
-    async with httpx.AsyncClient(verify=False) as http_client:
+    async with httpx.AsyncClient(verify=not _INSECURE_TLS) as http_client:
         jira = JiraClient(jira_creds, http_client)
         console.print("[bold blue]Step 1:[/bold blue] Fetching scope for Planner-style report…")
         scope_items = await fetch_scope(jira, filter_id=scope_filter_id, jql=effective_jql)
@@ -359,7 +364,7 @@ async def _run_copilot_executions(
     jira_creds, xray_creds = load_credentials(env_path)
 
     console.print("[bold blue]Preflight:[/bold blue] validating Jira/Xray access and release scope…")
-    async with httpx.AsyncClient(verify=False) as http_client:
+    async with httpx.AsyncClient(verify=not _INSECURE_TLS) as http_client:
         jira = JiraClient(jira_creds, http_client)
         xray = XrayClient(xray_creds, http_client)
         scope_items = await fetch_scope(jira, jql=scope_jql)

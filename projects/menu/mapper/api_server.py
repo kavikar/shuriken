@@ -40,7 +40,11 @@ from flask import Flask, jsonify, send_from_directory, request, redirect, make_r
 from flask_cors import CORS
 from urllib.parse import urlparse, parse_qs
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# Corporate-proxy escape hatch: TLS verification is on by default and only
+# disabled when explicitly opted into, rather than always skipped.
+_INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
+if _INSECURE_TLS:
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 OUTPUT_ROOT = 'Reports'
 os.makedirs(OUTPUT_ROOT, exist_ok=True)
@@ -1172,7 +1176,7 @@ def brand_unmapped_live(brand_code):
             headers['Authorization'] = f'Bearer {token}'
         if cookie_header:
             headers['Cookie'] = cookie_header
-        return http_requests.get(target_url, headers=headers, timeout=120, verify=False)
+        return http_requests.get(target_url, headers=headers, timeout=120, verify=not _INSECURE_TLS)
 
     try:
         resp = _call(primary_token)
@@ -1266,12 +1270,12 @@ def brand_compare_live(brand_code):
     perm_dir = _brand_report_dir(brand)
     os.makedirs(perm_dir, exist_ok=True)
     try:
-        uat_resp = http_requests.get(uat_url, headers=uat_headers, timeout=120, verify=False)
+        uat_resp = http_requests.get(uat_url, headers=uat_headers, timeout=120, verify=not _INSECURE_TLS)
         uat_resp.raise_for_status()
         uat_path = os.path.join(tmp_dir, 'location_live.txt')
         with open(uat_path, 'w', encoding='utf-8') as f:
             f.write(uat_resp.text)
-        master_resp = http_requests.get(master_url, headers=master_headers, timeout=120, verify=False)
+        master_resp = http_requests.get(master_url, headers=master_headers, timeout=120, verify=not _INSECURE_TLS)
         master_resp.raise_for_status()
         master_path = os.path.join(tmp_dir, 'master_live.txt')
         with open(master_path, 'w', encoding='utf-8') as f:
@@ -1312,12 +1316,12 @@ def brand_master_delta_live(brand_code):
     perm_dir = os.path.join('Reports', brand.upper(), 'MasterDelta')
     os.makedirs(perm_dir, exist_ok=True)
     try:
-        uat_resp = http_requests.get(uat_url, headers=uat_headers, timeout=120, verify=False)
+        uat_resp = http_requests.get(uat_url, headers=uat_headers, timeout=120, verify=not _INSECURE_TLS)
         uat_resp.raise_for_status()
         uat_path = os.path.join(tmp_dir, 'uat_master.json')
         with open(uat_path, 'w', encoding='utf-8') as f:
             f.write(uat_resp.text)
-        prod_resp = http_requests.get(prod_url, headers=prod_headers, timeout=120, verify=False)
+        prod_resp = http_requests.get(prod_url, headers=prod_headers, timeout=120, verify=not _INSECURE_TLS)
         prod_resp.raise_for_status()
         prod_path = os.path.join(tmp_dir, 'prod_master.json')
         with open(prod_path, 'w', encoding='utf-8') as f:
@@ -1615,7 +1619,7 @@ def proxy_get():
         if v:
             extra_headers[k] = v
     try:
-        resp = http_requests.get(target_url, headers=extra_headers, timeout=60, verify=False)
+        resp = http_requests.get(target_url, headers=extra_headers, timeout=60, verify=not _INSECURE_TLS)
         try:
             body = resp.json()
         except Exception:

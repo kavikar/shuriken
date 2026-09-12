@@ -20,6 +20,11 @@ const email = env.JIRA_EMAIL || env.JIRA_USERNAME;
 const token = env.JIRA_API_TOKEN || env.JIRA_TOKEN;
 const base64 = Buffer.from(`${email}:${token}`).toString('base64');
 
+// Corporate-proxy escape hatch: TLS verification is on by default and only
+// disabled when explicitly opted into (matches the documented
+// NODE_TLS_REJECT_UNAUTHORIZED=0 convention), rather than always skipped.
+const insecureTls = process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0';
+
 function jiraGet(path) {
   return new Promise((resolve, reject) => {
     const options = {
@@ -31,7 +36,7 @@ function jiraGet(path) {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      rejectUnauthorized: false
+      rejectUnauthorized: !insecureTls
     };
     const req = https.request(options, (res) => {
       let data = '';

@@ -4,8 +4,13 @@ import argparse
 import asyncio
 import csv
 import json
+import os
 import re
 from pathlib import Path
+
+# Corporate-proxy escape hatch: TLS verification is on by default and only
+# disabled when explicitly opted into, rather than always skipped.
+_INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
 
 SCOPE_JQL_TEMPLATE = (
     'project in ("IDP Blue Green and DR", "Digital Blueprint - Build Phase",'
@@ -74,7 +79,7 @@ async def _run(release: str, executions: list[str], env_file: str | None, json_o
 
     jql = SCOPE_JQL_TEMPLATE.format(release_version=release)
 
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=not _INSECURE_TLS) as client:
         jira = JiraClient(jira_creds, client)
         xray = XrayClient(xray_creds, client)
 

@@ -15,6 +15,7 @@ Environment:
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -24,6 +25,10 @@ try:
 except ImportError:
     print("ERROR: 'requests' required. Run: pip install requests")
     sys.exit(1)
+
+# Corporate-proxy escape hatch: TLS verification is on by default and only
+# disabled when explicitly opted into, rather than always skipped.
+_INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
 
 # Brand → API service prefix mapping
 BRAND_API = {
@@ -95,7 +100,7 @@ def retrieve_otp(phone: str, brand: str = "b3", env: str = "uat",
             resp = requests.post(url, json=body, headers={
                 "accept": "application/json",
                 "Content-Type": "application/json",
-            }, timeout=15, verify=False)
+            }, timeout=15, verify=not _INSECURE_TLS)
 
             if resp.status_code != 200:
                 print(f"  Attempt {attempt}: HTTP {resp.status_code}", file=sys.stderr)
