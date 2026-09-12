@@ -13,12 +13,12 @@ from pathlib import Path
 _INSECURE_TLS = os.environ.get("ALLOW_INSECURE_TLS") == "1"
 
 SCOPE_JQL_TEMPLATE = (
-    'project in ("IDP Blue Green and DR", "Digital Blueprint - Build Phase",'
-    '"Customer Growth Value Stream", "example - IT CRM Email Campaigns",'
-    '"Customer Data + Marketing Activation","Post Order Value Stream",'
-    '"IDP Order Ahead Value Stream", "Loyalty Value Stream",'
-    '"Digital Operations Support", "On-Prem Digital Sales Value Stream",'
-    '"Digital Ordering Value Stream", E2E)'
+    'project in ("Platform Infra and DR", "Digital Foundation Build",'
+    '"Customer Growth Stream", "example - CRM Email Campaigns",'
+    '"Customer Data and Marketing","Post-Order Stream",'
+    '"Order Ahead Stream", "Loyalty Stream",'
+    '"Digital Ops Support", "In-Store Digital Sales Stream",'
+    '"Digital Ordering Stream", E2E)'
     ' AND fixVersion in ("{release_version}")'
     ' AND issuetype NOT IN (Test, "Test Execution", "Testing Sub Task",'
     ' "Test Plan", Epic, "Sub Test Execution", Task)'
