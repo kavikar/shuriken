@@ -185,5 +185,9 @@ def check_unmapped():
 
 
 if __name__ == "__main__":
-	print("findUnmapped web server starting on http://localhost:5100")
-	app.run(host="0.0.0.0", port=5100, debug=True)
+	# Bind to localhost and keep the debugger off unless explicitly opted
+	# into — Werkzeug's debugger allows arbitrary code execution if reachable.
+	host = os.environ.get("FLASK_HOST", "127.0.0.1")
+	debug = os.environ.get("FLASK_DEBUG") == "1"
+	print(f"findUnmapped web server starting on http://{host}:5100")
+	app.run(host=host, port=5100, debug=debug)

@@ -80,8 +80,8 @@ FIXED_SERVICE_NAMES = [
 ]
 
 URL_PATTERN = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
-HOST_PATTERN = re.compile(r"\b([a-z0-9-]+\.(?:b3-api|brand1-api|b1-api|b2-api)\.(?:uat01a|uat01|staginga|staging)\.irb\.digital)\b", re.IGNORECASE)
-ENV_PATTERN = re.compile(r"\.(uat01a|uat01|staginga|staging)\.irb\.digital$", re.IGNORECASE)
+HOST_PATTERN = re.compile(r"\b([a-z0-9-]+\.(?:b3-api|brand1-api|b1-api|b2-api)\.(?:uat01a|uat01|staginga|staging)\.staging\.example)\b", re.IGNORECASE)
+ENV_PATTERN = re.compile(r"\.(uat01a|uat01|staginga|staging)\.staging\.example$", re.IGNORECASE)
 PAGE_ENV_PATTERN = re.compile(r"\b(uat01a|uat01|staginga|staging)\b", re.IGNORECASE)
 
 _CACHE_LOCK = threading.Lock()
